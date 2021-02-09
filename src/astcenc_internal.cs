@@ -1,5 +1,31 @@
 namespace ASTCEnc
 {
+	// enumeration of all the quantization methods we support under this format.
+	public enum QuantMethod
+	{
+		QUANT_2 = 0,
+		QUANT_3 = 1,
+		QUANT_4 = 2,
+		QUANT_5 = 3,
+		QUANT_6 = 4,
+		QUANT_8 = 5,
+		QUANT_10 = 6,
+		QUANT_12 = 7,
+		QUANT_16 = 8,
+		QUANT_20 = 9,
+		QUANT_24 = 10,
+		QUANT_32 = 11,
+		QUANT_40 = 12,
+		QUANT_48 = 13,
+		QUANT_64 = 14,
+		QUANT_80 = 15,
+		QUANT_96 = 16,
+		QUANT_128 = 17,
+		QUANT_160 = 18,
+		QUANT_192 = 19,
+		QUANT_256 = 20
+	}
+
 	public static class Constants
 	{
 		/* ============================================================================
@@ -46,7 +72,7 @@ namespace ASTCEnc
 		{
 			this.texels_per_partition = new byte[4];
 			this.partition_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texels_of_partition = new byte[4][MAX_TEXELS_PER_BLOCK];
+			this.texels_of_partition = new byte[4][Constants.MAX_TEXELS_PER_BLOCK];
 			this.coverage_bitmaps = new ulong[4];
 		}
 	}
@@ -62,7 +88,7 @@ namespace ASTCEnc
 		public float[] data_a;
 
 		// TODO: Migrate to vfloat4
-		public float4 origin_texel;
+		public Float4 origin_texel;
 		public vfloat4 data_min;
 		public vfloat4 data_max;
 		public bool    grayscale;

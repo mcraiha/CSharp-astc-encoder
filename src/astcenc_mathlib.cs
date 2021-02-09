@@ -116,7 +116,53 @@ namespace ASTCEnc
 
 		public static float dot(Float4 p, Float4 q)
 		{
-			return p.r * q.r + p.g * q.g + p.b * q.b  + p.a * q.a;
+			return p.r * q.r + p.g * q.g + p.b * q.b + p.a * q.a;
 		}
 	}
+
+	/*********************************
+	Declaration of line types
+	*********************************/
+	// parametric line, 2D: The line is given by line = a + b * t.
+
+	public struct Line2
+	{
+		public Float2 a;
+		public Float2 b;
+	};
+
+	// parametric line, 3D
+	public struct Line3
+	{
+		public Float3 a;
+		public Float3 b;
+	};
+
+	public struct Line4
+	{
+		public Float4 a;
+		public Float4 b;
+	};
+
+
+	public struct ProcessedLine2
+	{
+		public Float2 amod;
+		public Float2 bs;
+		public Float2 bis;
+	};
+
+	public struct ProcessedLine3
+	{
+		public Float3 amod;
+		public Float3 bs;
+		public Float3 bis;
+	};
+
+	public struct ProcessedLine4
+	{
+		public Float4 amod;
+		public Float4 bs;
+		public Float4 bis;
+	};
 }

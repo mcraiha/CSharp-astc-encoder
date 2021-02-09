@@ -190,10 +190,10 @@ namespace ASTCEnc
 
 		public static void compute_averages_and_directions_3_components(PartitionInfo pt, ImageBlock blk, ErrorWeightBlock ewb, Float3[] color_scalefactors, int omitted_component, Float3[] averages, Float3[] directions) 
 		{
-			const float[] texel_weights;
-			const float[] data_vr;
-			const float[] data_vg;
-			const float[] data_vb;
+			float[] texel_weights;
+			float[] data_vr;
+			float[] data_vg;
+			float[] data_vb;
 
 			if (omitted_component == 0)
 			{
@@ -386,8 +386,8 @@ namespace ASTCEnc
 					}
 				}
 
-				float prod_xp = dot(sum_xp, sum_xp);
-				float prod_yp = dot(sum_yp, sum_yp);
+				float prod_xp = Float2.dot(sum_xp, sum_xp);
+				float prod_yp = Float2.dot(sum_yp, sum_yp);
 
 				Float2 best_vector = sum_xp;
 				float best_sum = prod_xp;
@@ -399,6 +399,153 @@ namespace ASTCEnc
 
 				directions[partition] = best_vector;
 			}
+		}
+
+		public static void compute_error_squared_rgba(PartitionInfo pt, ImageBlock blk, ErrorWeightBlock ewb, ProcessedLine4[] uncor_plines, ProcessedLine4[] samec_plines, float[] uncor_lengths, float[] samec_lengths, float[] uncor_errors, float[] samec_errors) 
+		{
+			float uncor_errorsum = 0.0f;
+			float samec_errorsum = 0.0f;
+
+			int partition_count = pt.partition_count;
+			promise(partition_count > 0);
+
+			for (int partition = 0; partition < partition_count; partition++)
+			{
+				// TODO: sort partitions by number of texels. For warp-architectures,
+				// this can reduce the running time by about 25-50%.
+				byte[] weights = pt.texels_of_partition[partition];
+
+				float uncor_loparam = 1e10f;
+				float uncor_hiparam = -1e10f;
+
+				float samec_loparam = 1e10f;
+				float samec_hiparam = -1e10f;
+
+				ProcessedLine4 l_uncor = uncor_plines[partition];
+				ProcessedLine4 l_samec = samec_plines[partition];
+
+				// TODO: split up this loop due to too many temporaries; in particular,
+				// the six line functions will consume 18 vector registers
+				int texel_count = pt.texels_per_partition[partition];
+				promise(texel_count > 0);
+
+				int i = 0;
+
+				// Loop tail
+				for (/* */; i < texel_count; i++)
+				{
+					int iwt = weights[i];
+
+					Float4 dat = new Float4(blk.data_r[iwt],
+										blk.data_g[iwt],
+										blk.data_b[iwt],
+										blk.data_a[iwt]);
+
+					Float4 ews = ewb.error_weights[iwt];
+
+					float uncor_param = Float4.dot(dat, l_uncor.bs);
+					uncor_loparam = astc::min(uncor_param, uncor_loparam);
+					uncor_hiparam = astc::max(uncor_param, uncor_hiparam);
+
+					float samec_param = Float4.dot(dat, l_samec.bs);
+					samec_loparam = astc::min(samec_param, samec_loparam);
+					samec_hiparam = astc::max(samec_param, samec_hiparam);
+
+					Float4 uncor_dist  = (l_uncor.amod - dat)
+									+ (uncor_param * l_uncor.bis);
+					uncor_errorsum += Float4.dot(ews, uncor_dist * uncor_dist);
+
+					Float4 samec_dist = (l_samec.amod - dat)
+									+ (samec_param * l_samec.bis);
+					samec_errorsum += Float4.dot(ews, samec_dist * samec_dist);
+				}
+
+				float uncor_linelen = uncor_hiparam - uncor_loparam;
+				float samec_linelen = samec_hiparam - samec_loparam;
+
+				// Turn very small numbers and NaNs into a small number
+				uncor_linelen = astc::max(uncor_linelen, 1e-7f);
+				samec_linelen = astc::max(samec_linelen, 1e-7f);
+
+				uncor_lengths[partition] = uncor_linelen;
+				samec_lengths[partition] = samec_linelen;
+			}
+
+			uncor_errors = uncor_errorsum;
+			samec_errors = samec_errorsum;
+		}
+
+		public static void compute_error_squared_rgb(PartitionInfo pt, ImageBlock blk, ErrorWeightBlock ewb, ProcessedLine3[] uncor_plines, ProcessedLine3[] samec_plines, float[] uncor_lengths, float[] samec_lengths, float[] uncor_errors, float[] samec_errors) 
+		{
+			float uncor_errorsum = 0.0f;
+			float samec_errorsum = 0.0f;
+
+			int partition_count = pt.partition_count;
+			promise(partition_count > 0);
+
+			for (int partition = 0; partition < partition_count; partition++)
+			{
+				byte[] weights = pt.texels_of_partition[partition];
+
+				float uncor_loparam = 1e10f;
+				float uncor_hiparam = -1e10f;
+
+				float samec_loparam = 1e10f;
+				float samec_hiparam = -1e10f;
+
+				ProcessedLine3 l_uncor = uncor_plines[partition];
+				ProcessedLine3 l_samec = samec_plines[partition];
+
+				// TODO: split up this loop due to too many temporaries; in
+				// particular, the six line functions will consume 18 vector registers
+				int texel_count = pt.texels_per_partition[partition];
+				promise(texel_count > 0);
+
+				int i = 0;
+
+				// Loop tail
+				for (/* */; i < texel_count; i++)
+				{
+					int iwt = weights[i];
+
+					Float3 dat = new Float3(blk.data_r[iwt],
+										blk.data_g[iwt],
+										blk.data_b[iwt]);
+
+					Float3 ews = new Float3(ewb.error_weights[iwt].r,
+										ewb.error_weights[iwt].g,
+										ewb.error_weights[iwt].b);
+
+					float uncor_param = Float3.dot(dat, l_uncor.bs);
+					uncor_loparam  = astc::min(uncor_param, uncor_loparam);
+					uncor_hiparam = astc::max(uncor_param, uncor_hiparam);
+
+					float samec_param = Float3.dot(dat, l_samec.bs);
+					samec_loparam  = astc::min(samec_param, samec_loparam);
+					samec_hiparam = astc::max(samec_param, samec_hiparam);
+
+					Float3 uncor_dist  = (l_uncor.amod - dat)
+									+ (uncor_param * l_uncor.bis);
+					uncor_errorsum += Float3.dot(ews, uncor_dist * uncor_dist);
+
+					Float3 samec_dist = (l_samec.amod - dat)
+									+ (samec_param * l_samec.bis);
+					samec_errorsum += Float3.dot(ews, samec_dist * samec_dist);
+				}
+
+				float uncor_linelen = uncor_hiparam - uncor_loparam;
+				float samec_linelen = samec_hiparam - samec_loparam;
+
+				// Turn very small numbers and NaNs into a small number
+				uncor_linelen = astc::max(uncor_linelen, 1e-7f);
+				samec_linelen = astc::max(samec_linelen, 1e-7f);
+
+				uncor_lengths[partition] = uncor_linelen;
+				samec_lengths[partition] = samec_linelen;
+			}
+
+			uncor_errors = uncor_errorsum;
+			samec_errors = samec_errorsum;
 		}
 	}
 }
