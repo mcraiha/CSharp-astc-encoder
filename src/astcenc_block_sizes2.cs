@@ -199,18 +199,18 @@ namespace ASTCEnc
 			return 1;
 		}
 
-		public static void initialize_decimation_table_2d(int xdim, int ydim, int x_weights, int y_weights, decimation_table* dt) 
+		public static void initialize_decimation_table_2d(int xdim, int ydim, int x_weights, int y_weights, DecimationTable dt) 
 		{
 			int texels_per_block = xdim * ydim;
 			int weights_per_block = x_weights * y_weights;
 
-			uint8_t weightcount_of_texel[MAX_TEXELS_PER_BLOCK];
-			uint8_t grid_weights_of_texel[MAX_TEXELS_PER_BLOCK][4];
-			uint8_t weights_of_texel[MAX_TEXELS_PER_BLOCK][4];
+			byte[] weightcount_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
+			byte[,] grid_weights_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
+			byte[,] weights_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
 
-			uint8_t texelcount_of_weight[MAX_WEIGHTS_PER_BLOCK];
-			uint8_t texels_of_weight[MAX_WEIGHTS_PER_BLOCK][MAX_TEXELS_PER_BLOCK];
-			int texelweights_of_weight[MAX_WEIGHTS_PER_BLOCK][MAX_TEXELS_PER_BLOCK];
+			byte[] texelcount_of_weight = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
+			byte[,] texels_of_weight = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
+			int[,] texelweights_of_weight = new int[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
 
 			for (int i = 0; i < weights_per_block; i++)
 			{
@@ -254,11 +254,11 @@ namespace ASTCEnc
 					{
 						if (weight[i] != 0)
 						{
-							grid_weights_of_texel[texel][weightcount_of_texel[texel]] = qweight[i];
-							weights_of_texel[texel][weightcount_of_texel[texel]] = weight[i];
+							grid_weights_of_texel[texel, weightcount_of_texel[texel]] = qweight[i];
+							weights_of_texel[texel, weightcount_of_texel[texel]] = weight[i];
 							weightcount_of_texel[texel]++;
-							texels_of_weight[qweight[i]][texelcount_of_weight[qweight[i]]] = texel;
-							texelweights_of_weight[qweight[i]][texelcount_of_weight[qweight[i]]] = weight[i];
+							texels_of_weight[qweight[i], texelcount_of_weight[qweight[i]]] = texel;
+							texelweights_of_weight[qweight[i], texelcount_of_weight[qweight[i]]] = weight[i];
 							texelcount_of_weight[qweight[i]]++;
 						}
 					}
@@ -272,23 +272,23 @@ namespace ASTCEnc
 				// Init all 4 entries so we can rely on zeros for vectorization
 				for (int j = 0; j < 4; j++)
 				{
-					dt.texel_weights_int_t4[i][j] = 0;
-					dt.texel_weights_float_t4[i][j] = 0.0f;
-					dt.texel_weights_t4[i][j] = 0;
+					dt.texel_weights_int_t4[i, j] = 0;
+					dt.texel_weights_float_t4[i, j] = 0.0f;
+					dt.texel_weights_t4[i, j] = 0;
 
-					dt.texel_weights_float_4t[j][i] = 0.0f;
-					dt.texel_weights_4t[j][i] = 0;
+					dt.texel_weights_float_4t[j, i] = 0.0f;
+					dt.texel_weights_4t[j, i] = 0;
 
 				}
 
 				for (int j = 0; j < weightcount_of_texel[i]; j++)
 				{
-					dt.texel_weights_int_t4[i][j] = weights_of_texel[i][j];
-					dt.texel_weights_float_t4[i][j] = ((float)weights_of_texel[i][j]) * (1.0f / TEXEL_WEIGHT_SUM);
-					dt.texel_weights_t4[i][j] = grid_weights_of_texel[i][j];
+					dt.texel_weights_int_t4[i, j] = weights_of_texel[i, j];
+					dt.texel_weights_float_t4[i, j] = ((float)weights_of_texel[i, j]) * (1.0f / TEXEL_WEIGHT_SUM);
+					dt.texel_weights_t4[i, j] = grid_weights_of_texel[i, j];
 
-					dt.texel_weights_float_4t[j][i] = ((float)weights_of_texel[i][j]) * (1.0f / TEXEL_WEIGHT_SUM);
-					dt.texel_weights_4t[j][i] = grid_weights_of_texel[i][j];
+					dt.texel_weights_float_4t[j, i] = ((float)weights_of_texel[i, j]) * (1.0f / TEXEL_WEIGHT_SUM);
+					dt.texel_weights_4t[j, i] = grid_weights_of_texel[i, j];
 				}
 			}
 
@@ -298,10 +298,10 @@ namespace ASTCEnc
 
 				for (int j = 0; j < texelcount_of_weight[i]; j++)
 				{
-					uint8_t texel = texels_of_weight[i][j];
-					dt.weight_texel[i][j] = texel;
-					dt.weights_int[i][j] = texelweights_of_weight[i][j];
-					dt.weights_flt[i][j] = (float)texelweights_of_weight[i][j];
+					byte texel = texels_of_weight[i, j];
+					dt.weight_texel[i, j] = texel;
+					dt.weights_int[i, j] = texelweights_of_weight[i, j];
+					dt.weights_flt[i, j] = (float)texelweights_of_weight[i, j];
 
 					// perform a layer of array unrolling. An aspect of this unrolling is that
 					// one of the texel-weight indexes is an identity-mapped index; we will use this
@@ -309,24 +309,24 @@ namespace ASTCEnc
 					int swap_idx = -1;
 					for (int k = 0; k < 4; k++)
 					{
-						uint8_t dttw = dt.texel_weights_t4[texel][k];
-						float dttwf = dt.texel_weights_float_t4[texel][k];
+						byte dttw = dt.texel_weights_t4[texel, k];
+						float dttwf = dt.texel_weights_float_t4[texel, k];
 						if (dttw == i && dttwf != 0.0f)
 						{
 							swap_idx = k;
 						}
-						dt.texel_weights_texel[i][j][k] = dttw;
-						dt.texel_weights_float_texel[i][j][k] = dttwf;
+						dt.texel_weights_texel[i, j, k] = dttw;
+						dt.texel_weights_float_texel[i, j, k] = dttwf;
 					}
 
 					if (swap_idx != 0)
 					{
-						uint8_t vi = dt.texel_weights_texel[i][j][0];
-						float vf = dt.texel_weights_float_texel[i][j][0];
-						dt.texel_weights_texel[i][j][0] = dt.texel_weights_texel[i][j][swap_idx];
-						dt.texel_weights_float_texel[i][j][0] = dt.texel_weights_float_texel[i][j][swap_idx];
-						dt.texel_weights_texel[i][j][swap_idx] = vi;
-						dt.texel_weights_float_texel[i][j][swap_idx] = vf;
+						byte vi = dt.texel_weights_texel[i, j, 0];
+						float vf = dt.texel_weights_float_texel[i, j, 0];
+						dt.texel_weights_texel[i, j, 0] = dt.texel_weights_texel[i, j, swap_idx];
+						dt.texel_weights_float_texel[i, j, 0] = dt.texel_weights_float_texel[i, j, swap_idx];
+						dt.texel_weights_texel[i, j, swap_idx] = vi;
+						dt.texel_weights_float_texel[i, j, swap_idx] = vf;
 					}
 				}
 			}
@@ -338,265 +338,265 @@ namespace ASTCEnc
 			dt.weight_z = 1;
 		}
 
-public static void initialize_decimation_table_3d(int xdim, int ydim, int zdim, int x_weights, int y_weights, int z_weights, decimation_table* dt) 
-{
-	int texels_per_block = xdim * ydim * zdim;
-	int weights_per_block = x_weights * y_weights * z_weights;
-
-	uint8_t weightcount_of_texel[MAX_TEXELS_PER_BLOCK];
-	uint8_t grid_weights_of_texel[MAX_TEXELS_PER_BLOCK][4];
-	uint8_t weights_of_texel[MAX_TEXELS_PER_BLOCK][4];
-
-	uint8_t texelcount_of_weight[MAX_WEIGHTS_PER_BLOCK];
-	uint8_t texels_of_weight[MAX_WEIGHTS_PER_BLOCK][MAX_TEXELS_PER_BLOCK];
-	int texelweights_of_weight[MAX_WEIGHTS_PER_BLOCK][MAX_TEXELS_PER_BLOCK];
-
-	for (int i = 0; i < weights_per_block; i++)
+	public static void initialize_decimation_table_3d(int xdim, int ydim, int zdim, int x_weights, int y_weights, int z_weights, DecimationTable dt) 
 	{
-		texelcount_of_weight[i] = 0;
-	}
+		int texels_per_block = xdim * ydim * zdim;
+		int weights_per_block = x_weights * y_weights * z_weights;
 
-	for (int i = 0; i < texels_per_block; i++)
-	{
-		weightcount_of_texel[i] = 0;
-	}
+		byte[] weightcount_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
+		byte[,] grid_weights_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
+		byte[,] weights_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
 
-	for (int z = 0; z < zdim; z++)
-	{
-		for (int y = 0; y < ydim; y++)
+		byte[] texelcount_of_weight = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
+		byte[,] texels_of_weight = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
+		int[,] texelweights_of_weight = new int[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
+
+		for (int i = 0; i < weights_per_block; i++)
 		{
-			for (int x = 0; x < xdim; x++)
+			texelcount_of_weight[i] = 0;
+		}
+
+		for (int i = 0; i < texels_per_block; i++)
+		{
+			weightcount_of_texel[i] = 0;
+		}
+
+		for (int z = 0; z < zdim; z++)
+		{
+			for (int y = 0; y < ydim; y++)
 			{
-				int texel = (z * ydim + y) * xdim + x;
-
-				int x_weight = (((1024 + xdim / 2) / (xdim - 1)) * x * (x_weights - 1) + 32) >> 6;
-				int y_weight = (((1024 + ydim / 2) / (ydim - 1)) * y * (y_weights - 1) + 32) >> 6;
-				int z_weight = (((1024 + zdim / 2) / (zdim - 1)) * z * (z_weights - 1) + 32) >> 6;
-
-				int x_weight_frac = x_weight & 0xF;
-				int y_weight_frac = y_weight & 0xF;
-				int z_weight_frac = z_weight & 0xF;
-				int x_weight_int = x_weight >> 4;
-				int y_weight_int = y_weight >> 4;
-				int z_weight_int = z_weight >> 4;
-				int qweight[4];
-				int weight[4];
-				qweight[0] = (z_weight_int * y_weights + y_weight_int) * x_weights + x_weight_int;
-				qweight[3] = ((z_weight_int + 1) * y_weights + (y_weight_int + 1)) * x_weights + (x_weight_int + 1);
-
-				// simplex interpolation
-				int fs = x_weight_frac;
-				int ft = y_weight_frac;
-				int fp = z_weight_frac;
-
-				int cas = ((fs > ft) << 2) + ((ft > fp) << 1) + ((fs > fp));
-				int N = x_weights;
-				int NM = x_weights * y_weights;
-
-				int s1, s2, w0, w1, w2, w3;
-				switch (cas)
+				for (int x = 0; x < xdim; x++)
 				{
-				case 7:
-					s1 = 1;
-					s2 = N;
-					w0 = 16 - fs;
-					w1 = fs - ft;
-					w2 = ft - fp;
-					w3 = fp;
-					break;
-				case 3:
-					s1 = N;
-					s2 = 1;
-					w0 = 16 - ft;
-					w1 = ft - fs;
-					w2 = fs - fp;
-					w3 = fp;
-					break;
-				case 5:
-					s1 = 1;
-					s2 = NM;
-					w0 = 16 - fs;
-					w1 = fs - fp;
-					w2 = fp - ft;
-					w3 = ft;
-					break;
-				case 4:
-					s1 = NM;
-					s2 = 1;
-					w0 = 16 - fp;
-					w1 = fp - fs;
-					w2 = fs - ft;
-					w3 = ft;
-					break;
-				case 2:
-					s1 = N;
-					s2 = NM;
-					w0 = 16 - ft;
-					w1 = ft - fp;
-					w2 = fp - fs;
-					w3 = fs;
-					break;
-				case 0:
-					s1 = NM;
-					s2 = N;
-					w0 = 16 - fp;
-					w1 = fp - ft;
-					w2 = ft - fs;
-					w3 = fs;
-					break;
-				default:
-					s1 = NM;
-					s2 = N;
-					w0 = 16 - fp;
-					w1 = fp - ft;
-					w2 = ft - fs;
-					w3 = fs;
-					break;
-				}
+					int texel = (z * ydim + y) * xdim + x;
 
-				qweight[1] = qweight[0] + s1;
-				qweight[2] = qweight[1] + s2;
-				weight[0] = w0;
-				weight[1] = w1;
-				weight[2] = w2;
-				weight[3] = w3;
+					int x_weight = (((1024 + xdim / 2) / (xdim - 1)) * x * (x_weights - 1) + 32) >> 6;
+					int y_weight = (((1024 + ydim / 2) / (ydim - 1)) * y * (y_weights - 1) + 32) >> 6;
+					int z_weight = (((1024 + zdim / 2) / (zdim - 1)) * z * (z_weights - 1) + 32) >> 6;
 
-				for (int i = 0; i < 4; i++)
-				{
-					if (weight[i] != 0)
+					int x_weight_frac = x_weight & 0xF;
+					int y_weight_frac = y_weight & 0xF;
+					int z_weight_frac = z_weight & 0xF;
+					int x_weight_int = x_weight >> 4;
+					int y_weight_int = y_weight >> 4;
+					int z_weight_int = z_weight >> 4;
+					int[] qweight = new int[4];
+					int[] weight = new int[4];
+					qweight[0] = (z_weight_int * y_weights + y_weight_int) * x_weights + x_weight_int;
+					qweight[3] = ((z_weight_int + 1) * y_weights + (y_weight_int + 1)) * x_weights + (x_weight_int + 1);
+
+					// simplex interpolation
+					int fs = x_weight_frac;
+					int ft = y_weight_frac;
+					int fp = z_weight_frac;
+
+					int cas = ((fs > ft) << 2) + ((ft > fp) << 1) + ((fs > fp));
+					int N = x_weights;
+					int NM = x_weights * y_weights;
+
+					int s1, s2, w0, w1, w2, w3;
+					switch (cas)
 					{
-						grid_weights_of_texel[texel][weightcount_of_texel[texel]] = qweight[i];
-						weights_of_texel[texel][weightcount_of_texel[texel]] = weight[i];
-						weightcount_of_texel[texel]++;
-						texels_of_weight[qweight[i]][texelcount_of_weight[qweight[i]]] = texel;
-						texelweights_of_weight[qweight[i]][texelcount_of_weight[qweight[i]]] = weight[i];
-						texelcount_of_weight[qweight[i]]++;
+					case 7:
+						s1 = 1;
+						s2 = N;
+						w0 = 16 - fs;
+						w1 = fs - ft;
+						w2 = ft - fp;
+						w3 = fp;
+						break;
+					case 3:
+						s1 = N;
+						s2 = 1;
+						w0 = 16 - ft;
+						w1 = ft - fs;
+						w2 = fs - fp;
+						w3 = fp;
+						break;
+					case 5:
+						s1 = 1;
+						s2 = NM;
+						w0 = 16 - fs;
+						w1 = fs - fp;
+						w2 = fp - ft;
+						w3 = ft;
+						break;
+					case 4:
+						s1 = NM;
+						s2 = 1;
+						w0 = 16 - fp;
+						w1 = fp - fs;
+						w2 = fs - ft;
+						w3 = ft;
+						break;
+					case 2:
+						s1 = N;
+						s2 = NM;
+						w0 = 16 - ft;
+						w1 = ft - fp;
+						w2 = fp - fs;
+						w3 = fs;
+						break;
+					case 0:
+						s1 = NM;
+						s2 = N;
+						w0 = 16 - fp;
+						w1 = fp - ft;
+						w2 = ft - fs;
+						w3 = fs;
+						break;
+					default:
+						s1 = NM;
+						s2 = N;
+						w0 = 16 - fp;
+						w1 = fp - ft;
+						w2 = ft - fs;
+						w3 = fs;
+						break;
+					}
+
+					qweight[1] = qweight[0] + s1;
+					qweight[2] = qweight[1] + s2;
+					weight[0] = w0;
+					weight[1] = w1;
+					weight[2] = w2;
+					weight[3] = w3;
+
+					for (int i = 0; i < 4; i++)
+					{
+						if (weight[i] != 0)
+						{
+							grid_weights_of_texel[texel, weightcount_of_texel[texel]] = qweight[i];
+							weights_of_texel[texel, weightcount_of_texel[texel]] = weight[i];
+							weightcount_of_texel[texel]++;
+							texels_of_weight[qweight[i], texelcount_of_weight[qweight[i]]] = texel;
+							texelweights_of_weight[qweight[i], texelcount_of_weight[qweight[i]]] = weight[i];
+							texelcount_of_weight[qweight[i]]++;
+						}
 					}
 				}
 			}
 		}
-	}
 
-	for (int i = 0; i < texels_per_block; i++)
-	{
-		dt->texel_weight_count[i] = weightcount_of_texel[i];
-
-		// Init all 4 entries so we can rely on zeros for vectorization
-		for (int j = 0; j < 4; j++)
+		for (int i = 0; i < texels_per_block; i++)
 		{
-			dt->texel_weights_int_t4[i][j] = 0;
-			dt->texel_weights_float_t4[i][j] = 0.0f;
-			dt->texel_weights_t4[i][j] = 0;
+			dt.texel_weight_count[i] = weightcount_of_texel[i];
 
-			dt->texel_weights_float_4t[j][i] = 0.0f;
-			dt->texel_weights_4t[j][i] = 0;
-		}
-
-		for (int j = 0; j < weightcount_of_texel[i]; j++)
-		{
-			dt->texel_weights_int_t4[i][j] = weights_of_texel[i][j];
-			dt->texel_weights_float_t4[i][j] = ((float)weights_of_texel[i][j]) * (1.0f / TEXEL_WEIGHT_SUM);
-			dt->texel_weights_t4[i][j] = grid_weights_of_texel[i][j];
-
-			dt->texel_weights_float_4t[j][i] = ((float)weights_of_texel[i][j]) * (1.0f / TEXEL_WEIGHT_SUM);
-			dt->texel_weights_4t[j][i] = grid_weights_of_texel[i][j];
-		}
-	}
-
-	for (int i = 0; i < weights_per_block; i++)
-	{
-		dt->weight_texel_count[i] = texelcount_of_weight[i];
-		for (int j = 0; j < texelcount_of_weight[i]; j++)
-		{
-			int texel = texels_of_weight[i][j];
-			dt->weight_texel[i][j] = texel;
-			dt->weights_int[i][j] = texelweights_of_weight[i][j];
-			dt->weights_flt[i][j] = (float)texelweights_of_weight[i][j];
-
-			// perform a layer of array unrolling. An aspect of this unrolling is that
-			// one of the texel-weight indexes is an identity-mapped index; we will use this
-			// fact to reorder the indexes so that the first one is the identity index.
-			int swap_idx = -1;
-			for (int k = 0; k < 4; k++)
+			// Init all 4 entries so we can rely on zeros for vectorization
+			for (int j = 0; j < 4; j++)
 			{
-				uint8_t dttw = dt->texel_weights_t4[texel][k];
-				float dttwf = dt->texel_weights_float_t4[texel][k];
-				if (dttw == i && dttwf != 0.0f)
+				dt.texel_weights_int_t4[i, j] = 0;
+				dt.texel_weights_float_t4[i, j] = 0.0f;
+				dt.texel_weights_t4[i, j] = 0;
+
+				dt.texel_weights_float_4t[j, i] = 0.0f;
+				dt.texel_weights_4t[j, i] = 0;
+			}
+
+			for (int j = 0; j < weightcount_of_texel[i]; j++)
+			{
+				dt.texel_weights_int_t4[i, j] = weights_of_texel[i, j];
+				dt.texel_weights_float_t4[i, j] = ((float)weights_of_texel[i, j]) * (1.0f / TEXEL_WEIGHT_SUM);
+				dt.texel_weights_t4[i, j] = grid_weights_of_texel[i, j];
+
+				dt.texel_weights_float_4t[j, i] = ((float)weights_of_texel[i, j]) * (1.0f / TEXEL_WEIGHT_SUM);
+				dt.texel_weights_4t[j, i] = grid_weights_of_texel[i, j];
+			}
+		}
+
+		for (int i = 0; i < weights_per_block; i++)
+		{
+			dt.weight_texel_count[i] = texelcount_of_weight[i];
+			for (int j = 0; j < texelcount_of_weight[i]; j++)
+			{
+				int texel = texels_of_weight[i, j];
+				dt.weight_texel[i, j] = texel;
+				dt.weights_int[i, j] = texelweights_of_weight[i, j];
+				dt.weights_flt[i, j] = (float)texelweights_of_weight[i, j];
+
+				// perform a layer of array unrolling. An aspect of this unrolling is that
+				// one of the texel-weight indexes is an identity-mapped index; we will use this
+				// fact to reorder the indexes so that the first one is the identity index.
+				int swap_idx = -1;
+				for (int k = 0; k < 4; k++)
 				{
-					swap_idx = k;
+					byte dttw = dt.texel_weights_t4[texel, k];
+					float dttwf = dt.texel_weights_float_t4[texel, k];
+					if (dttw == i && dttwf != 0.0f)
+					{
+						swap_idx = k;
+					}
+					dt.texel_weights_texel[i, j, k] = dttw;
+					dt.texel_weights_float_texel[i, j, k] = dttwf;
 				}
-				dt->texel_weights_texel[i][j][k] = dttw;
-				dt->texel_weights_float_texel[i][j][k] = dttwf;
-			}
 
-			if (swap_idx != 0)
-			{
-				uint8_t vi = dt->texel_weights_texel[i][j][0];
-				float vf = dt->texel_weights_float_texel[i][j][0];
-				dt->texel_weights_texel[i][j][0] = dt->texel_weights_texel[i][j][swap_idx];
-				dt->texel_weights_float_texel[i][j][0] = dt->texel_weights_float_texel[i][j][swap_idx];
-				dt->texel_weights_texel[i][j][swap_idx] = vi;
-				dt->texel_weights_float_texel[i][j][swap_idx] = vf;
+				if (swap_idx != 0)
+				{
+					byte vi = dt.texel_weights_texel[i, j, 0];
+					float vf = dt.texel_weights_float_texel[i, j, 0];
+					dt.texel_weights_texel[i, j, 0] = dt.texel_weights_texel[i, j, swap_idx];
+					dt.texel_weights_float_texel[i, j, 0] = dt.texel_weights_float_texel[i, j, swap_idx];
+					dt.texel_weights_texel[i, j, swap_idx] = vi;
+					dt.texel_weights_float_texel[i, j, swap_idx] = vf;
+				}
 			}
 		}
+
+		dt.texel_count = texels_per_block;
+		dt.weight_count = weights_per_block;
+		dt.weight_x = x_weights;
+		dt.weight_y = y_weights;
+		dt.weight_z = z_weights;
 	}
 
-	dt->texel_count = texels_per_block;
-	dt->weight_count = weights_per_block;
-	dt->weight_x = x_weights;
-	dt->weight_y = y_weights;
-	dt->weight_z = z_weights;
-}
+	/**
+	* @brief Assign the texels to use for kmeans clustering.
+	*
+	* The max limit is MAX_KMEANS_TEXELS; above this a random selection is used.
+	* The @c bsd.texel_count is an input and must be populated beforehand.
+	*
+	* @param bsd   The block size descriptor to populate.
+	*/
+	static void assign_kmeans_texels(
+		block_size_descriptor& bsd
+	) {
+		// Use all texels for kmeans on a small block
+		if (bsd.texel_count <= MAX_KMEANS_TEXELS)
+		{
+			for (int i = 0; i < bsd.texel_count; i++)
+			{
+				bsd.kmeans_texels[i] = i;
+			}
 
-/**
- * @brief Assign the texels to use for kmeans clustering.
- *
- * The max limit is MAX_KMEANS_TEXELS; above this a random selection is used.
- * The @c bsd.texel_count is an input and must be populated beforehand.
- *
- * @param bsd   The block size descriptor to populate.
- */
-static void assign_kmeans_texels(
-	block_size_descriptor& bsd
-) {
-	// Use all texels for kmeans on a small block
-	if (bsd.texel_count <= MAX_KMEANS_TEXELS)
-	{
+			bsd.kmeans_texel_count = bsd.texel_count;
+			return;
+		}
+
+		// Select a random subset of texels for kmeans on a large block
+		uint64_t rng_state[2];
+		astc::rand_init(rng_state);
+
+		// Pick 64 random texels for use with bitmap partitioning.
+		bool seen[MAX_TEXELS_PER_BLOCK];
 		for (int i = 0; i < bsd.texel_count; i++)
 		{
-			bsd.kmeans_texels[i] = i;
+			seen[i] = false;
 		}
 
-		bsd.kmeans_texel_count = bsd.texel_count;
-		return;
-	}
-
-	// Select a random subset of texels for kmeans on a large block
-	uint64_t rng_state[2];
-	astc::rand_init(rng_state);
-
-	// Pick 64 random texels for use with bitmap partitioning.
-	bool seen[MAX_TEXELS_PER_BLOCK];
-	for (int i = 0; i < bsd.texel_count; i++)
-	{
-		seen[i] = false;
-	}
-
-	// Assign 64 random indices, retrying if we see repeats
-	int arr_elements_set = 0;
-	while (arr_elements_set < MAX_KMEANS_TEXELS)
-	{
-		unsigned int idx = (unsigned int)astc::rand(rng_state);
-		idx %= bsd.texel_count;
-		if (!seen[idx])
+		// Assign 64 random indices, retrying if we see repeats
+		int arr_elements_set = 0;
+		while (arr_elements_set < MAX_KMEANS_TEXELS)
 		{
-			bsd.kmeans_texels[arr_elements_set++] = idx;
-			seen[idx] = true;
+			unsigned int idx = (unsigned int)astc::rand(rng_state);
+			idx %= bsd.texel_count;
+			if (!seen[idx])
+			{
+				bsd.kmeans_texels[arr_elements_set++] = idx;
+				seen[idx] = true;
+			}
 		}
-	}
 
-	bsd.kmeans_texel_count = MAX_KMEANS_TEXELS;
-}
+		bsd.kmeans_texel_count = MAX_KMEANS_TEXELS;
+	}
 
 /**
  * @brief Allocate a single 2D decimation table entry.

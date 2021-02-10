@@ -1,5 +1,30 @@
+using System.Collections.Generic;
+
 namespace ASTCEnc
 {
+	public struct btq_count 
+	{
+		/**< The quantization level. */
+		public byte quant;
+
+		/**< The number of bits. */
+		public byte bits;
+
+		/**< The number of trits. */
+		public byte trits;
+
+		/**< The number of quints. */
+		public byte quints;
+
+		public btq_count(QuantMethod quantMethod, byte bits, byte trits, byte quints)
+		{
+			this.quant = (byte)quantMethod;
+			this.bits = bits;
+			this.trits = trits;
+			this.quints = quints;
+		}
+	}
+
 	public static class IntegerSequence
 	{
 		// unpacked quint triplets <low,middle,high> for each packed-quint value
@@ -308,6 +333,31 @@ namespace ASTCEnc
 					}
 				}
 			}
+		};
+
+		private static readonly List<btq_count> btq_counts = new List<btq_count>()
+		{
+			new btq_count(QuantMethod.QUANT_2, 1, 0, 0),
+			new btq_count(QuantMethod.QUANT_3, 0, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_4, 2, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_5, 0, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_6, 1, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_8, 3, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_10, 1, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_12, 2, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_16, 4, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_20, 2, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_24, 3, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_32, 5, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_40, 3, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_48, 4, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_64, 6, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_80, 4, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_96, 5, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_128, 7, 0, 0 ),
+			new btq_count(QuantMethod.QUANT_160, 5, 0, 1 ),
+			new btq_count(QuantMethod.QUANT_192, 6, 1, 0 ),
+			new btq_count(QuantMethod.QUANT_256, 8, 0, 0 )
 		};
 
 		/* See header for documentation. */
