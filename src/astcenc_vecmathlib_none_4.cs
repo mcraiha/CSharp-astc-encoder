@@ -5,7 +5,7 @@ namespace ASTCEnc
 		private const int internalSize = 4;
 		public float[] m;
 
-		public vfloat4()
+		public vfloat4(bool unusedValue)
 		{
 			this.m = new float[internalSize];
 		}

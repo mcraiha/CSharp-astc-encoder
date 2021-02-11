@@ -210,7 +210,7 @@ namespace ASTCEnc
 		public int block_mode_count;
 
 		/**< The active block modes, stored in low indices. */
-		BlockMode[] block_modes;
+		public BlockMode[] block_modes;
 
 		/**< The block mode array index, or -1 if not valid in current config. */
 		public short[] block_mode_packed_index;
@@ -223,7 +223,7 @@ namespace ASTCEnc
 		public int[] kmeans_texels;
 
 		/**< The partion tables for all of the possible partitions. */
-		PartitionInfo[] partitions;
+		public PartitionInfo[] partitions;
 
 		public BlockSizeDescriptor(bool notUsed)
 		{

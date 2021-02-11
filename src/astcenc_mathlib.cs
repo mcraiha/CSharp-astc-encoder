@@ -1,3 +1,5 @@
+using System;
+
 namespace ASTCEnc
 {
 	public class Float2
@@ -165,4 +167,90 @@ namespace ASTCEnc
 		public Float4 bs;
 		public Float4 bis;
 	};
+
+	public static class ASTCMath
+	{
+		public static float clamp1f(float value)
+		{
+			return (value < 0.0f) ? 0.0f : (value > 1.0f) ? 1.0f : value; 
+		}
+
+		/**
+		* @brief Clamp a float value between 0.0f and 255.0f.
+		*
+		* NaNs are turned into 0.0f.
+		*
+		* @param v  The value to clamp.
+		*
+		* @return The clamped value.
+		*/
+		public static float clamp255f(float value)
+		{
+			return (value < 0.0f) ? 0.0f : (value > 255.0f) ? 255.0f : value; 
+		}
+
+		/**
+		* @brief Clamp a float value between 0.0f and 65504.0f.
+		*
+		* NaNs are turned into 0.0f.
+		*
+		* @param v   The value to clamp
+		*
+		* @return The clamped value
+		*/
+		public static float clamp64Kf(float value)
+		{
+			return (value < 0.0f) ? 0.0f : (value > 65504.0f) ? 65504.0f : value; 
+		}
+
+
+		/**
+		* @brief SP float round-to-nearest.
+		*
+		* @param v   The value to round.
+		*
+		* @return The rounded value.
+		*/
+		public static float flt_rte(float v)
+		{
+			return (float)Math.Floor(v + 0.5f);
+		}
+
+		/**
+		* @brief SP float round-down.
+		*
+		* @param v   The value to round.
+		*
+		* @return The rounded value.
+		*/
+		public static float flt_rd(float v)
+		{
+			return (float)Math.Floor(v);
+		}
+
+		/**
+		* @brief SP float round-to-nearest and convert to integer.
+		*
+		* @param v   The value to round.
+		*
+		* @return The rounded value.
+		*/
+		public static int flt2int_rtn(float v)
+		{
+
+			return (int)(v + 0.5f);
+		}
+
+		/**
+		* @brief SP float round down and convert to integer.
+		*
+		* @param v   The value to round.
+		*
+		* @return The rounded value.
+		*/
+		public static int flt2int_rd(float v)
+		{
+			return (int)(v);
+		}
+	}
 }
