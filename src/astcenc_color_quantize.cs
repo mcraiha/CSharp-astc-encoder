@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 namespace ASTCEnc
 {
@@ -631,7 +632,7 @@ namespace ASTCEnc
 		}
 
 		/* attempt to quantize RGB endpoint values with blue-contraction. Returns 1 on failure, 0 on success. */
-		public static int try_quantize_rgb_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		public static bool try_quantize_rgb_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
 		{
 			float scale = 1.0f / 257.0f;
 
@@ -653,7 +654,7 @@ namespace ASTCEnc
 			if (r0 < 0.0f || r0 > 255.0f || g0 < 0.0f || g0 > 255.0f || b0 < 0.0f || b0 > 255.0f ||
 				r1 < 0.0f || r1 > 255.0f || g1 < 0.0f || g1 > 255.0f || b1 < 0.0f || b1 > 255.0f)
 			{
-				return 0;
+				return false;
 			}
 
 			// quantize the inverse-blue-contracted color
@@ -677,7 +678,7 @@ namespace ASTCEnc
 			// we must only test AFTER blue-contraction.
 			if (ru1 + gu1 + bu1 <= ru0 + gu0 + bu0)
 			{
-				return 0;
+				return false;
 			}
 
 			output[0] = ri1;
@@ -687,11 +688,11 @@ namespace ASTCEnc
 			output[4] = bi1;
 			output[5] = bi0;
 
-			return 1;
+			return true;
 		}
 
 		/* quantize an RGBA color with blue-contraction */
-		public static int try_quantize_rgba_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		public static bool try_quantize_rgba_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
 		{
 			float scale = 1.0f / 257.0f;
 
@@ -711,7 +712,7 @@ namespace ASTCEnc
 		// if the sum of the offsets is nonnegative, then we encode a regular delta.
 
 		/* attempt to quantize an RGB endpoint value with delta-encoding. */
-		static int try_quantize_rgb_delta(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		static bool try_quantize_rgb_delta(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
 		{
 			float scale = 1.0f / 257.0f;
 
@@ -766,7 +767,7 @@ namespace ASTCEnc
 			// check if the difference is too large to be encodable.
 			if (r1d > 63 || g1d > 63 || b1d > 63 || r1d < -64 || g1d < -64 || b1d < -64)
 			{
-				return 0;
+				return false;
 			}
 
 			// insert top bit of the base into the offset
@@ -791,7 +792,7 @@ namespace ASTCEnc
 
 			if (((r1d ^ r1du) | (g1d ^ g1du) | (b1d ^ b1du)) & 0xC0)
 			{
-				return 0;
+				return false;
 			}
 
 			// check that the sum of the encoded offsets is nonnegative, else encoding fails
@@ -816,7 +817,7 @@ namespace ASTCEnc
 
 			if (r1du + g1du + b1du < 0)
 			{
-				return 0;
+				return false;
 			}
 
 			// check that the offsets produce legitimate sums as well.
@@ -825,7 +826,7 @@ namespace ASTCEnc
 			b1du += b0b;
 			if (r1du < 0 || r1du > 0x1FF || g1du < 0 || g1du > 0x1FF || b1du < 0 || b1du > 0x1FF)
 			{
-				return 0;
+				return false;
 			}
 
 			// OK, we've come this far; we can now encode legitimate values.
@@ -836,10 +837,10 @@ namespace ASTCEnc
 			output[4] = b0be;
 			output[5] = b1de;
 
-			return 1;
+			return true;
 		}
 
-		static int try_quantize_rgb_delta_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		static bool try_quantize_rgb_delta_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
 		{
 			// Note: Switch around endpoint colors already at start
 			float scale = 1.0f / 257.0f;
@@ -862,7 +863,7 @@ namespace ASTCEnc
 			if (r0 < 0.0f || r0 > 255.0f || g0 < 0.0f || g0 > 255.0f || b0 < 0.0f || b0 > 255.0f ||
 				r1 < 0.0f || r1 > 255.0f || g1 < 0.0f || g1 > 255.0f || b1 < 0.0f || b1 > 255.0f)
 			{
-				return 0;
+				return false;
 			}
 
 			// transform r0 to unorm9
@@ -907,7 +908,7 @@ namespace ASTCEnc
 			// check if the difference is too large to be encodable.
 			if (r1d > 63 || g1d > 63 || b1d > 63 || r1d < -64 || g1d < -64 || b1d < -64)
 			{
-				return 0;
+				return false;
 			}
 
 			// insert top bit of the base into the offset
@@ -932,7 +933,7 @@ namespace ASTCEnc
 
 			if (((r1d ^ r1du) | (g1d ^ g1du) | (b1d ^ b1du)) & 0xC0)
 			{
-				return 0;
+				return false;
 			}
 
 			// check that the sum of the encoded offsets is negative, else encoding fails
@@ -958,7 +959,7 @@ namespace ASTCEnc
 
 			if (r1du + g1du + b1du >= 0)
 			{
-				return 0;
+				return false;
 			}
 
 			// check that the offsets produce legitimate sums as well.
@@ -968,7 +969,7 @@ namespace ASTCEnc
 
 			if (r1du < 0 || r1du > 0x1FF || g1du < 0 || g1du > 0x1FF || b1du < 0 || b1du > 0x1FF)
 			{
-				return 0;
+				return false;
 			}
 
 			// OK, we've come this far; we can now encode legitimate values.
@@ -979,7 +980,1380 @@ namespace ASTCEnc
 			output[4] = b0be;
 			output[5] = b1de;
 
-			return 1;
+			return true;
+		}
+
+		static bool try_quantize_alpha_delta(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			float a0 = ASTCMath.clamp255f(color0.lane<3>() * scale);
+			float a1 = ASTCMath.clamp255f(color1.lane<3>() * scale);
+
+			int a0a = ASTCMath.flt2int_rtn(a0);
+			a0a <<= 1;
+			int a0b = a0a & 0xFF;
+			int a0be = color_quant_tables[quant_level, a0b];
+			a0b = color_unquant_tables[quant_level, a0be];
+			a0b |= a0a & 0x100;
+			int a1d = ASTCMath.flt2int_rtn(a1);
+			a1d <<= 1;
+			a1d -= a0b;
+			if (a1d > 63 || a1d < -64)
+			{
+				return false;
+			}
+			a1d &= 0x7F;
+			a1d |= (a0b & 0x100) >> 1;
+			int a1de = color_quant_tables[quant_level, a1d];
+			int a1du = color_unquant_tables[quant_level, a1de];
+			if (((a1d ^ a1du) & 0xC0) == 1)
+			{
+				return false;
+			}
+			a1du &= 0x7F;
+			if ((a1du & 0x40) == 1)
+			{
+				a1du -= 0x80;
+			}
+			a1du += a0b;
+			if (a1du < 0 || a1du > 0x1FF)
+			{
+				return false;
+			}
+			output[6] = a0be;
+			output[7] = a1de;
+			return true;
+		}
+
+		static bool try_quantize_luminance_alpha_delta(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			float l0 = ASTCMath.clamp255f(hadd_rgb_s(color0) * ((1.0f / 3.0f) * scale));
+			float l1 = ASTCMath.clamp255f(hadd_rgb_s(color1) * ((1.0f / 3.0f) * scale));
+
+			float a0 = ASTCMath.clamp255f(color0.lane<3>() * scale);
+			float a1 = ASTCMath.clamp255f(color1.lane<3>() * scale);
+
+			int l0a = ASTCMath.flt2int_rtn(l0);
+			int a0a = ASTCMath.flt2int_rtn(a0);
+			l0a <<= 1;
+			a0a <<= 1;
+			int l0b = l0a & 0xFF;
+			int a0b = a0a & 0xFF;
+			int l0be = color_quant_tables[quant_level, l0b];
+			int a0be = color_quant_tables[quant_level, a0b];
+			l0b = color_unquant_tables[quant_level, l0be];
+			a0b = color_unquant_tables[quant_level, a0be];
+			l0b |= l0a & 0x100;
+			a0b |= a0a & 0x100;
+			int l1d = ASTCMath.flt2int_rtn(l1);
+			int a1d = ASTCMath.flt2int_rtn(a1);
+			l1d <<= 1;
+			a1d <<= 1;
+			l1d -= l0b;
+			a1d -= a0b;
+			if (l1d > 63 || l1d < -64)
+			{
+				return false;
+			}
+			if (a1d > 63 || a1d < -64)
+			{
+				return false;
+			}
+			l1d &= 0x7F;
+			a1d &= 0x7F;
+			l1d |= (l0b & 0x100) >> 1;
+			a1d |= (a0b & 0x100) >> 1;
+
+			int l1de = color_quant_tables[quant_level, l1d];
+			int a1de = color_quant_tables[quant_level, a1d];
+			int l1du = color_unquant_tables[quant_level, l1de];
+			int a1du = color_unquant_tables[quant_level, a1de];
+			if (((l1d ^ l1du) & 0xC0) == 1)
+			{
+				return false;
+			}
+			if (((a1d ^ a1du) & 0xC0) == 1)
+			{
+				return false;
+			}
+			l1du &= 0x7F;
+			a1du &= 0x7F;
+			if ((l1du & 0x40) == 1)
+			{
+				l1du -= 0x80;
+			}
+			if ((a1du & 0x40) == 1)
+			{
+				a1du -= 0x80;
+			}
+			l1du += l0b;
+			a1du += a0b;
+			if (l1du < 0 || l1du > 0x1FF)
+			{
+				return false;
+			}
+			if (a1du < 0 || a1du > 0x1FF)
+			{
+				return false;
+			}
+			output[0] = l0be;
+			output[1] = l1de;
+			output[2] = a0be;
+			output[3] = a1de;
+
+			return true;
+		}
+
+		static bool try_quantize_rgba_delta(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			bool alpha_delta_res = try_quantize_alpha_delta(color0, color1, ref output, quant_level);
+
+			if (alpha_delta_res == false)
+			{
+				return false;
+			}
+
+			return try_quantize_rgb_delta(color0, color1, ref output, quant_level);
+		}
+
+		static bool try_quantize_rgba_delta_blue_contract(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			// notice that for the alpha encoding, we are swapping around color0 and color1;
+			// this is because blue-contraction involves swapping around the two colors.
+			int alpha_delta_res = try_quantize_alpha_delta(color1, color0, ref output, quant_level);
+
+			if (alpha_delta_res == 0)
+			{
+				return false;
+			}
+
+			return try_quantize_rgb_delta_blue_contract(color0, color1, ref output, quant_level);
+		}
+
+		static void quantize_rgbs_new(vfloat4 rgbs_color, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			float r = ASTCMath.clamp255f(rgbs_color.lane<0>() * scale);
+			float g = ASTCMath.clamp255f(rgbs_color.lane<1>() * scale);
+			float b = ASTCMath.clamp255f(rgbs_color.lane<2>() * scale);
+
+			int ri = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(r)];
+			int gi = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(g)];
+			int bi = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(b)];
+
+			int ru = color_unquant_tables[quant_level, ri];
+			int gu = color_unquant_tables[quant_level, gi];
+			int bu = color_unquant_tables[quant_level, bi];
+
+			float oldcolorsum = hadd_rgb_s(rgbs_color) * scale;
+			float newcolorsum = (float)(ru + gu + bu);
+
+			float scalea = ASTCMath.clamp1f(rgbs_color.lane<3>() * (oldcolorsum + 1e-10f) / (newcolorsum + 1e-10f));
+			int scale_idx = ASTCMath.flt2int_rtn(scalea * 256.0f);
+			scale_idx = ASTCMath.clamp(scale_idx, 0, 255);
+
+			output[0] = ri;
+			output[1] = gi;
+			output[2] = bi;
+			output[3] = color_quant_tables[quant_level, scale_idx];
+		}
+
+		static void quantize_rgbs_alpha_new(vfloat4 color0, vfloat4 color1, vfloat4 rgbs_color, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			float a0 = ASTCMath.clamp255f(color0.lane<3>() * scale);
+			float a1 = ASTCMath.clamp255f(color1.lane<3>() * scale);
+
+			int ai0 = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a0)];
+			int ai1 = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a1)];
+
+			output[4] = ai0;
+			output[5] = ai1;
+
+			quantize_rgbs_new(rgbs_color, ref output, quant_level);
+		}
+
+		static void quantize_luminance(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			color0 = color0 * scale;
+			color1 = color1 * scale;
+
+			float lum0 = ASTCMath.clamp255f(hadd_rgb_s(color0) * (1.0f / 3.0f));
+			float lum1 = ASTCMath.clamp255f(hadd_rgb_s(color1) * (1.0f / 3.0f));
+
+			if (lum0 > lum1)
+			{
+				float avg = (lum0 + lum1) * 0.5f;
+				lum0 = avg;
+				lum1 = avg;
+			}
+
+			output[0] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(lum0)];
+			output[1] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(lum1)];
+		}
+
+		static void quantize_luminance_alpha(vfloat4 color0, vfloat4 color1, int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			color0 = color0 * scale;
+			color1 = color1 * scale;
+
+			float lum0 = ASTCMath.clamp255f(hadd_rgb_s(color0) * (1.0f / 3.0f));
+			float lum1 = ASTCMath.clamp255f(hadd_rgb_s(color1) * (1.0f / 3.0f));
+
+			float a0 = ASTCMath.clamp255f(color0.lane<3>());
+			float a1 = ASTCMath.clamp255f(color1.lane<3>());
+
+			// if the endpoints are *really* close, then pull them apart slightly;
+			// this affords for >8 bits precision for normal maps.
+			if (quant_level > 18)
+			{
+				if (Math.Abs(lum0 - lum1) < 3.0f)
+				{
+					if (lum0 < lum1)
+					{
+						lum0 -= 0.5f;
+						lum1 += 0.5f;
+					}
+					else
+					{
+						lum0 += 0.5f;
+						lum1 -= 0.5f;
+					}
+					lum0 = ASTCMath.clamp255f(lum0);
+					lum1 = ASTCMath.clamp255f(lum1);
+				}
+
+				if (Math.Abs(a0 - a1) < 3.0f)
+				{
+					if (a0 < a1)
+					{
+						a0 -= 0.5f;
+						a1 += 0.5f;
+					}
+					else
+					{
+						a0 += 0.5f;
+						a1 -= 0.5f;
+					}
+					a0 = ASTCMath.clamp255f(a0);
+					a1 = ASTCMath.clamp255f(a1);
+				}
+			}
+
+			output[0] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(lum0)];
+			output[1] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(lum1)];
+			output[2] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a0)];
+			output[3] = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a1)];
+		}
+
+		// quantize and unquantize a number, wile making sure to retain the top two bits.
+		static void quantize_and_unquantize_retain_top_two_bits(int quant_level, int value_to_quantize, ref int quantized_value, ref int unquantized_value) 
+		{
+			bool perform_loop;
+			int quantval;
+			int uquantval;
+
+			do
+			{
+				quantval = color_quant_tables[quant_level, value_to_quantize];
+				uquantval = color_unquant_tables[quant_level, quantval];
+
+				// perform looping if the top two bits were modified by quant/unquant
+				perform_loop = (value_to_quantize & 0xC0) != (uquantval & 0xC0);
+
+				if ((uquantval & 0xC0) > (value_to_quantize & 0xC0))
+				{
+					// quant/unquant rounded UP so that the top two bits changed;
+					// decrement the input value in hopes that this will avoid rounding up.
+					value_to_quantize--;
+				}
+				else if ((uquantval & 0xC0) < (value_to_quantize & 0xC0))
+				{
+					// quant/unquant rounded DOWN so that the top two bits changed;
+					// decrement the input value in hopes that this will avoid rounding down.
+					value_to_quantize--;
+				}
+			} while (perform_loop);
+
+			quantized_value = quantval;
+			unquantized_value = uquantval;
+		}
+
+		// quantize and unquantize a number, wile making sure to retain the top four bits.
+		static void quantize_and_unquantize_retain_top_four_bits(int quant_level, int value_to_quantize, ref int quantized_value, ref int unquantized_value) 
+		{
+			bool perform_loop;
+			int quantval;
+			int uquantval;
+
+			do
+			{
+				quantval = color_quant_tables[quant_level, value_to_quantize];
+				uquantval = color_unquant_tables[quant_level, quantval];
+
+				// perform looping if the top two bits were modified by quant/unquant
+				perform_loop = (value_to_quantize & 0xF0) != (uquantval & 0xF0);
+
+				if ((uquantval & 0xF0) > (value_to_quantize & 0xF0))
+				{
+					// quant/unquant rounded UP so that the top two bits changed;
+					// decrement the input value in hopes that this will avoid rounding up.
+					value_to_quantize--;
+				}
+				else if ((uquantval & 0xF0) < (value_to_quantize & 0xF0))
+				{
+					// quant/unquant rounded DOWN so that the top two bits changed;
+					// decrement the input value in hopes that this will avoid rounding down.
+					value_to_quantize--;
+				}
+			} while (perform_loop);
+
+			quantized_value = quantval;
+			unquantized_value = uquantval;
+		}
+
+		/* HDR color encoding, take #3 */
+		static void quantize_hdr_rgbo3(vfloat4 color, ref int[] output, int quant_level) 
+		{
+			color.set_lane<0>(color.lane<0>() + color.lane<3>());
+			color.set_lane<1>(color.lane<1>() + color.lane<3>());
+			color.set_lane<2>(color.lane<2>() + color.lane<3>());
+
+			color = clamp(0.0f, 65535.0f, color);
+
+			vfloat4 color_bak = color;
+			int majcomp;
+			if (color.lane<0>() > color.lane<1>() && color.lane<0>() > color.lane<2>())
+				majcomp = 0;			// red is largest component
+			else if (color.lane<1>() > color.lane<2>())
+				majcomp = 1;			// green is largest component
+			else
+				majcomp = 2;			// blue is largest component
+
+			// swap around the red component and the largest component.
+			switch (majcomp)
+			{
+			case 1:
+				color = new vfloat4(color.lane<1>(), color.lane<0>(), color.lane<2>(), color.lane<3>());
+				break;
+			case 2:
+				color = new vfloat4(color.lane<2>(), color.lane<1>(), color.lane<0>(), color.lane<3>());
+				break;
+			default:
+				break;
+			}
+
+			int[,] mode_bits = new int[5, 3] {
+				{11, 5, 7},
+				{11, 6, 5},
+				{10, 5, 8},
+				{9, 6, 7},
+				{8, 7, 6}
+			};
+
+			float[,] mode_cutoffs = new float[5, 2] {
+				{1024, 4096},
+				{2048, 1024},
+				{2048, 16384},
+				{8192, 16384},
+				{32768, 16384}
+			};
+
+			float[] mode_rscales = new float[5] {
+				32.0f,
+				32.0f,
+				64.0f,
+				128.0f,
+				256.0f,
+			};
+
+			float[] mode_scales = new float[5] {
+				1.0f / 32.0f,
+				1.0f / 32.0f,
+				1.0f / 64.0f,
+				1.0f / 128.0f,
+				1.0f / 256.0f,
+			};
+
+			float r_base = color.lane<0>();
+			float g_base = color.lane<0>() - color.lane<1>() ;
+			float b_base = color.lane<0>() - color.lane<2>() ;
+			float s_base = color.lane<3>() ;
+
+			for (int mode = 0; mode < 5; mode++)
+			{
+				if (g_base > mode_cutoffs[mode, 0] || b_base > mode_cutoffs[mode, 0] || s_base > mode_cutoffs[mode, 1])
+				{
+					continue;
+				}
+
+				// encode the mode into a 4-bit vector.
+				int mode_enc = mode < 4 ? (mode | (majcomp << 2)) : (majcomp | 0xC);
+
+				float mode_scale = mode_scales[mode];
+				float mode_rscale = mode_rscales[mode];
+
+				int gb_intcutoff = 1 << mode_bits[mode, 1];
+				int s_intcutoff = 1 << mode_bits[mode, 2];
+
+				// first, quantize and unquantize R.
+				int r_intval = ASTCMath.flt2int_rtn(r_base * mode_scale);
+
+				int r_lowbits = r_intval & 0x3f;
+
+				r_lowbits |= (mode_enc & 3) << 6;
+
+				int r_quantval = 0;
+				int r_uquantval = 0;
+				quantize_and_unquantize_retain_top_two_bits(quant_level, r_lowbits, ref r_quantval, ref r_uquantval);
+
+				r_intval = (r_intval & ~0x3f) | (r_uquantval & 0x3f);
+				float r_fval = static_cast<float>(r_intval) * mode_rscale;
+
+				// next, recompute G and B, then quantize and unquantize them.
+				float g_fval = r_fval - color.lane<1>() ;
+				float b_fval = r_fval - color.lane<2>() ;
+
+				g_fval = ASTCMath.clamp(g_fval, 0.0f, 65535.0f);
+				b_fval = ASTCMath.clamp(b_fval, 0.0f, 65535.0f);
+
+				int g_intval = ASTCMath.flt2int_rtn(g_fval * mode_scale);
+				int b_intval = ASTCMath.flt2int_rtn(b_fval * mode_scale);
+
+				if (g_intval >= gb_intcutoff || b_intval >= gb_intcutoff)
+				{
+					continue;
+				}
+
+				int g_lowbits = g_intval & 0x1f;
+				int b_lowbits = b_intval & 0x1f;
+
+				int bit0 = 0;
+				int bit1 = 0;
+				int bit2 = 0;
+				int bit3 = 0;
+
+				switch (mode)
+				{
+				case 0:
+				case 2:
+					bit0 = (r_intval >> 9) & 1;
+					break;
+				case 1:
+				case 3:
+					bit0 = (r_intval >> 8) & 1;
+					break;
+				case 4:
+				case 5:
+					bit0 = (g_intval >> 6) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 0:
+				case 1:
+				case 2:
+				case 3:
+					bit2 = (r_intval >> 7) & 1;
+					break;
+				case 4:
+				case 5:
+					bit2 = (b_intval >> 6) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 0:
+				case 2:
+					bit1 = (r_intval >> 8) & 1;
+					break;
+				case 1:
+				case 3:
+				case 4:
+				case 5:
+					bit1 = (g_intval >> 5) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 0:
+					bit3 = (r_intval >> 10) & 1;
+					break;
+				case 2:
+					bit3 = (r_intval >> 6) & 1;
+					break;
+				case 1:
+				case 3:
+				case 4:
+				case 5:
+					bit3 = (b_intval >> 5) & 1;
+					break;
+				}
+
+				g_lowbits |= (mode_enc & 0x4) << 5;
+				b_lowbits |= (mode_enc & 0x8) << 4;
+
+				g_lowbits |= bit0 << 6;
+				g_lowbits |= bit1 << 5;
+				b_lowbits |= bit2 << 6;
+				b_lowbits |= bit3 << 5;
+
+				int g_quantval = 0;
+				int b_quantval = 0;
+				int g_uquantval = 0;
+				int b_uquantval = 0;
+
+				quantize_and_unquantize_retain_top_four_bits(quant_level, g_lowbits, ref g_quantval, ref g_uquantval);
+
+				quantize_and_unquantize_retain_top_four_bits(quant_level, b_lowbits, ref b_quantval, ref b_uquantval);
+
+				g_intval = (g_intval & ~0x1f) | (g_uquantval & 0x1f);
+				b_intval = (b_intval & ~0x1f) | (b_uquantval & 0x1f);
+
+				g_fval = static_cast<float>(g_intval) * mode_rscale;
+				b_fval = static_cast<float>(b_intval) * mode_rscale;
+
+				// finally, recompute the scale value, based on the errors
+				// introduced to red, green and blue.
+
+				// If the error is positive, then the R,G,B errors combined have raised the color
+				// value overall; as such, the scale value needs to be increased.
+				float rgb_errorsum = (r_fval - color.lane<0>() ) + (r_fval - g_fval - color.lane<1>() ) + (r_fval - b_fval - color.lane<2>() );
+
+				float s_fval = s_base + rgb_errorsum * (1.0f / 3.0f);
+				s_fval = ASTCMath.clamp(s_fval, 0.0f, 1e9f);
+
+				int s_intval = ASTCMath.flt2int_rtn(s_fval * mode_scale);
+
+				if (s_intval >= s_intcutoff)
+				{
+					continue;
+				}
+
+				int s_lowbits = s_intval & 0x1f;
+
+				int bit4;
+				int bit5;
+				int bit6;
+				switch (mode)
+				{
+				case 1:
+					bit6 = (r_intval >> 9) & 1;
+					break;
+				default:
+					bit6 = (s_intval >> 5) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 4:
+					bit5 = (r_intval >> 7) & 1;
+					break;
+				case 1:
+					bit5 = (r_intval >> 10) & 1;
+					break;
+				default:
+					bit5 = (s_intval >> 6) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 2:
+					bit4 = (s_intval >> 7) & 1;
+					break;
+				default:
+					bit4 = (r_intval >> 6) & 1;
+					break;
+				}
+
+				s_lowbits |= bit6 << 5;
+				s_lowbits |= bit5 << 6;
+				s_lowbits |= bit4 << 7;
+
+				int s_quantval = 0;
+				int s_uquantval = 0;
+
+				quantize_and_unquantize_retain_top_four_bits(quant_level, s_lowbits, ref s_quantval, ref s_uquantval);
+				output[0] = r_quantval;
+				output[1] = g_quantval;
+				output[2] = b_quantval;
+				output[3] = s_quantval;
+				return;
+			}
+
+			// failed to encode any of the modes above? In that case,
+			// encode using mode #5.
+			float[] vals = new float[4];
+			vals[0] = color_bak.lane<0>();
+			vals[1] = color_bak.lane<1>();
+			vals[2] = color_bak.lane<2>();
+			vals[3] = color_bak.lane<3>();
+
+			int[] ivals = new int[4];
+			float[] cvals = new float[3];
+
+			for (int i = 0; i < 3; i++)
+			{
+				vals[i] = ASTCMath.clamp(vals[i], 0.0f, 65020.0f);
+				ivals[i] = ASTCMath.flt2int_rtn(vals[i] * (1.0f / 512.0f));
+				cvals[i] = static_cast<float>(ivals[i]) * 512.0f;
+			}
+
+			float rgb_errorsum = (cvals[0] - vals[0]) + (cvals[1] - vals[1]) + (cvals[2] - vals[2]);
+			vals[3] += rgb_errorsum * (1.0f / 3.0f);
+
+			vals[3] = ASTCMath.clamp(vals[3], 0.0f, 65020.0f);
+			ivals[3] = ASTCMath.flt2int_rtn(vals[3] * (1.0f / 512.0f));
+
+			int[] encvals = new int[4];
+			encvals[0] = (ivals[0] & 0x3f) | 0xC0;
+			encvals[1] = (ivals[1] & 0x7f) | 0x80;
+			encvals[2] = (ivals[2] & 0x7f) | 0x80;
+			encvals[3] = (ivals[3] & 0x7f) | ((ivals[0] & 0x40) << 1);
+
+			for (int i = 0; i < 4; i++)
+			{
+				int dummy = 0;
+				quantize_and_unquantize_retain_top_four_bits(quant_level, encvals[i], ref (output[i]), ref dummy);
+			}
+
+			return;
+		}
+
+		static void quantize_hdr_rgb3(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			// Note: color*.lane<3> is not used so we can ignore it
+			color0 = ASTCMath.clamp(0.0f, 65535.0f, color0);
+			color1 = ASTCMath.clamp(0.0f, 65535.0f, color1);
+
+			vfloat4 color0_bak = color0;
+			vfloat4 color1_bak = color1;
+
+			int majcomp;
+			if (color1.lane<0>() > color1.lane<1>() && color1.lane<0>() > color1.lane<2>())
+			{
+				majcomp = 0;			// red is largest
+			}
+			else if (color1.lane<1>() > color1.lane<2>())
+			{
+				majcomp = 1;			// green is largest
+			}
+			else
+			{
+				majcomp = 2;			// blue is largest
+			}
+
+			// swizzle the components
+			switch (majcomp)
+			{
+			case 1:					// red-green swap
+				color0 = new vfloat4(color0.lane<1>(), color0.lane<0>(), color0.lane<2>(), color0.lane<3>());
+				color1 = new vfloat4(color1.lane<1>(), color1.lane<0>(), color1.lane<2>(), color1.lane<3>());
+				break;
+			case 2:					// red-blue swap
+				color0 = new vfloat4(color0.lane<2>(), color0.lane<1>(), color0.lane<0>(), color0.lane<3>());
+				color1 = new vfloat4(color1.lane<2>(), color1.lane<1>(), color1.lane<0>(), color1.lane<3>());
+				break;
+			default:
+				break;
+			}
+
+			float a_base = color1.lane<0>();
+			a_base = ASTCMath.clamp(a_base, 0.0f, 65535.0f);
+
+			float b0_base = a_base - color1.lane<1>();
+			float b1_base = a_base - color1.lane<2>();
+			float c_base = a_base - color0.lane<0>();
+			float d0_base = a_base - b0_base - c_base - color0.lane<1>();
+			float d1_base = a_base - b1_base - c_base - color0.lane<2>();
+
+			// number of bits in the various fields in the various modes
+			int[,] mode_bits = new int[8, 4] {
+				{9, 7, 6, 7},
+				{9, 8, 6, 6},
+				{10, 6, 7, 7},
+				{10, 7, 7, 6},
+				{11, 8, 6, 5},
+				{11, 6, 8, 6},
+				{12, 7, 7, 5},
+				{12, 6, 7, 6}
+			};
+
+			// cutoffs to use for the computed values of a,b,c,d, assuming the
+			// range 0..65535 are LNS values corresponding to fp16.
+			float[,] mode_cutoffs = new float[8, 4] {
+				{16384, 8192, 8192, 8},	// mode 0: 9,7,6,7
+				{32768, 8192, 4096, 8},	// mode 1: 9,8,6,6
+				{4096, 8192, 4096, 4},	// mode 2: 10,6,7,7
+				{8192, 8192, 2048, 4},	// mode 3: 10,7,7,6
+				{8192, 2048, 512, 2},	// mode 4: 11,8,6,5
+				{2048, 8192, 1024, 2},	// mode 5: 11,6,8,6
+				{2048, 2048, 256, 1},	// mode 6: 12,7,7,5
+				{1024, 2048, 512, 1},	// mode 7: 12,6,7,6
+			};
+
+			float[] mode_scales = new float[8] {
+				1.0f / 128.0f,
+				1.0f / 128.0f,
+				1.0f / 64.0f,
+				1.0f / 64.0f,
+				1.0f / 32.0f,
+				1.0f / 32.0f,
+				1.0f / 16.0f,
+				1.0f / 16.0f,
+			};
+
+			// scaling factors when going from what was encoded in the mode to 16 bits.
+			float[] mode_rscales = new float[8] {
+				128.0f,
+				128.0f,
+				64.0f,
+				64.0f,
+				32.0f,
+				32.0f,
+				16.0f,
+				16.0f
+			};
+
+			// try modes one by one, with the highest-precision mode first.
+			for (int mode = 7; mode >= 0; mode--)
+			{
+				// for each mode, test if we can in fact accommodate
+				// the computed b,c,d values. If we clearly can't, then we skip to the next mode.
+
+				float b_cutoff = mode_cutoffs[mode, 0];
+				float c_cutoff = mode_cutoffs[mode, 1];
+				float d_cutoff = mode_cutoffs[mode, 2];
+
+				if (b0_base > b_cutoff || b1_base > b_cutoff || c_base > c_cutoff || Math.Abs(d0_base) > d_cutoff || Math.Abs(d1_base) > d_cutoff)
+				{
+					continue;
+				}
+
+				float mode_scale = mode_scales[mode];
+				float mode_rscale = mode_rscales[mode];
+
+				int b_intcutoff = 1 << mode_bits[mode, 1];
+				int c_intcutoff = 1 << mode_bits[mode, 2];
+				int d_intcutoff = 1 << (mode_bits[mode, 3] - 1);
+
+				// first, quantize and unquantize A, with the assumption that its high bits can be handled safely.
+				int a_intval = ASTCMath.flt2int_rtn(a_base * mode_scale);
+				int a_lowbits = a_intval & 0xFF;
+
+				int a_quantval = color_quant_tables[quant_level, a_lowbits];
+				int a_uquantval = color_unquant_tables[quant_level, a_quantval];
+				a_intval = (a_intval & ~0xFF) | a_uquantval;
+				float a_fval = static_cast<float>(a_intval) * mode_rscale;
+
+				// next, recompute C, then quantize and unquantize it
+				float c_fval = a_fval - color0.lane<0>();
+				c_fval = ASTCMath.clamp(c_fval, 0.0f, 65535.0f);
+
+				int c_intval = ASTCMath.flt2int_rtn(c_fval * mode_scale);
+
+				if (c_intval >= c_intcutoff)
+				{
+					continue;
+				}
+
+				int c_lowbits = c_intval & 0x3f;
+
+				c_lowbits |= (mode & 1) << 7;
+				c_lowbits |= (a_intval & 0x100) >> 2;
+
+				int c_quantval = 0;
+				int c_uquantval = 0;
+				quantize_and_unquantize_retain_top_two_bits(quant_level, c_lowbits, ref c_quantval, ref c_uquantval);
+				c_intval = (c_intval & ~0x3F) | (c_uquantval & 0x3F);
+				c_fval = static_cast<float>(c_intval) * mode_rscale;
+
+				// next, recompute B0 and B1, then quantize and unquantize them
+				float b0_fval = a_fval - color1.lane<1>();
+				float b1_fval = a_fval - color1.lane<2>();
+
+				b0_fval = ASTCMath.clamp(b0_fval, 0.0f, 65535.0f);
+				b1_fval = ASTCMath.clamp(b1_fval, 0.0f, 65535.0f);
+				int b0_intval = ASTCMath.flt2int_rtn(b0_fval * mode_scale);
+				int b1_intval = ASTCMath.flt2int_rtn(b1_fval * mode_scale);
+
+				if (b0_intval >= b_intcutoff || b1_intval >= b_intcutoff)
+				{
+					continue;
+				}
+
+				int b0_lowbits = b0_intval & 0x3f;
+				int b1_lowbits = b1_intval & 0x3f;
+
+				int bit0 = 0;
+				int bit1 = 0;
+				switch (mode)
+				{
+				case 0:
+				case 1:
+				case 3:
+				case 4:
+				case 6:
+					bit0 = (b0_intval >> 6) & 1;
+					break;
+				case 2:
+				case 5:
+				case 7:
+					bit0 = (a_intval >> 9) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 0:
+				case 1:
+				case 3:
+				case 4:
+				case 6:
+					bit1 = (b1_intval >> 6) & 1;
+					break;
+				case 2:
+					bit1 = (c_intval >> 6) & 1;
+					break;
+				case 5:
+				case 7:
+					bit1 = (a_intval >> 10) & 1;
+					break;
+				}
+
+				b0_lowbits |= bit0 << 6;
+				b1_lowbits |= bit1 << 6;
+
+				b0_lowbits |= ((mode >> 1) & 1) << 7;
+				b1_lowbits |= ((mode >> 2) & 1) << 7;
+
+				int b0_quantval = 0;
+				int b1_quantval = 0;
+				int b0_uquantval = 0;
+				int b1_uquantval = 0;
+
+				quantize_and_unquantize_retain_top_two_bits(quant_level, b0_lowbits, ref b0_quantval, ref b0_uquantval);
+
+				quantize_and_unquantize_retain_top_two_bits(quant_level, b1_lowbits, ref b1_quantval, ref b1_uquantval);
+
+				b0_intval = (b0_intval & ~0x3f) | (b0_uquantval & 0x3f);
+				b1_intval = (b1_intval & ~0x3f) | (b1_uquantval & 0x3f);
+				b0_fval = static_cast<float>(b0_intval) * mode_rscale;
+				b1_fval = static_cast<float>(b1_intval) * mode_rscale;
+
+				// finally, recompute D0 and D1, then quantize and unquantize them
+				float d0_fval = a_fval - b0_fval - c_fval - color0.lane<1>();
+				float d1_fval = a_fval - b1_fval - c_fval - color0.lane<2>();
+
+				d0_fval = ASTCMath.clamp(d0_fval, -65535.0f, 65535.0f);
+				d1_fval = ASTCMath.clamp(d1_fval, -65535.0f, 65535.0f);
+
+				int d0_intval = ASTCMath.flt2int_rtn(d0_fval * mode_scale);
+				int d1_intval = ASTCMath.flt2int_rtn(d1_fval * mode_scale);
+
+				if (Math.Abs(d0_intval) >= d_intcutoff || Math.Abs(d1_intval) >= d_intcutoff)
+				{
+					continue;
+				}
+
+				int d0_lowbits = d0_intval & 0x1f;
+				int d1_lowbits = d1_intval & 0x1f;
+
+				int bit2 = 0;
+				int bit3 = 0;
+				int bit4;
+				int bit5;
+				switch (mode)
+				{
+				case 0:
+				case 2:
+					bit2 = (d0_intval >> 6) & 1;
+					break;
+				case 1:
+				case 4:
+					bit2 = (b0_intval >> 7) & 1;
+					break;
+				case 3:
+					bit2 = (a_intval >> 9) & 1;
+					break;
+				case 5:
+					bit2 = (c_intval >> 7) & 1;
+					break;
+				case 6:
+				case 7:
+					bit2 = (a_intval >> 11) & 1;
+					break;
+				}
+				switch (mode)
+				{
+				case 0:
+				case 2:
+					bit3 = (d1_intval >> 6) & 1;
+					break;
+				case 1:
+				case 4:
+					bit3 = (b1_intval >> 7) & 1;
+					break;
+				case 3:
+				case 5:
+				case 6:
+				case 7:
+					bit3 = (c_intval >> 6) & 1;
+					break;
+				}
+
+				switch (mode)
+				{
+				case 4:
+				case 6:
+					bit4 = (a_intval >> 9) & 1;
+					bit5 = (a_intval >> 10) & 1;
+					break;
+				default:
+					bit4 = (d0_intval >> 5) & 1;
+					bit5 = (d1_intval >> 5) & 1;
+					break;
+				}
+
+				d0_lowbits |= bit2 << 6;
+				d1_lowbits |= bit3 << 6;
+				d0_lowbits |= bit4 << 5;
+				d1_lowbits |= bit5 << 5;
+
+				d0_lowbits |= (majcomp & 1) << 7;
+				d1_lowbits |= ((majcomp >> 1) & 1) << 7;
+
+				int d0_quantval = 0;
+				int d1_quantval = 0;
+				int d0_uquantval = 0;
+				int d1_uquantval = 0;
+
+				quantize_and_unquantize_retain_top_four_bits(quant_level, d0_lowbits, ref d0_quantval, ref d0_uquantval);
+
+				quantize_and_unquantize_retain_top_four_bits(quant_level, d1_lowbits, ref d1_quantval, ref d1_uquantval);
+
+				output[0] = a_quantval;
+				output[1] = c_quantval;
+				output[2] = b0_quantval;
+				output[3] = b1_quantval;
+				output[4] = d0_quantval;
+				output[5] = d1_quantval;
+				return;
+			}
+
+			// neither of the modes fit? In this case, we will use a flat representation
+			// for storing data, using 8 bits for red and green, and 7 bits for blue.
+			// This gives color accuracy roughly similar to LDR 4:4:3 which is not at all great
+			// but usable. This representation is used if the light color is more than 4x the
+			// color value of the dark color.
+			float[] vals = new float[6];
+			vals[0] = color0_bak.lane<0>();
+			vals[1] = color1_bak.lane<0>();
+			vals[2] = color0_bak.lane<1>();
+			vals[3] = color1_bak.lane<1>();
+			vals[4] = color0_bak.lane<2>();
+			vals[5] = color1_bak.lane<2>();
+
+			for (int i = 0; i < 6; i++)
+			{
+				vals[i] = ASTCMath.clamp(vals[i], 0.0f, 65020.0f);
+			}
+
+			for (int i = 0; i < 4; i++)
+			{
+				int idx = ASTCMath.flt2int_rtn(vals[i] * 1.0f / 256.0f);
+				output[i] = color_quant_tables[quant_level, idx];
+			}
+
+			for (int i = 4; i < 6; i++)
+			{
+				int dummy = 0;
+				int idx = ASTCMath.flt2int_rtn(vals[i] * 1.0f / 512.0f) + 128;
+				quantize_and_unquantize_retain_top_two_bits(quant_level, idx, ref (output[i]), ref dummy);
+			}
+
+			return;
+		}
+		
+		static void quantize_hdr_rgb_ldr_alpha3(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			float scale = 1.0f / 257.0f;
+
+			float a0 = ASTCMath.clamp255f(color0.lane<3>() * scale);
+			float a1 = ASTCMath.clamp255f(color1.lane<3>() * scale);
+
+			int ai0 = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a0)];
+			int ai1 = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(a1)];
+
+			output[6] = ai0;
+			output[7] = ai1;
+
+			quantize_hdr_rgb3(color0, color1, ref output, quant_level);
+		}
+
+		static void quantize_hdr_luminance_large_range3(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			float lum0 = hadd_rgb_s(color0) * (1.0f / 3.0f);
+			float lum1 = hadd_rgb_s(color1) * (1.0f / 3.0f);
+
+			if (lum1 < lum0)
+			{
+				float avg = (lum0 + lum1) * 0.5f;
+				lum0 = avg;
+				lum1 = avg;
+			}
+
+			int ilum1 = ASTCMath.flt2int_rtn(lum1);
+			int ilum0 = ASTCMath.flt2int_rtn(lum0);
+
+			// find the closest encodable point in the upper half of the code-point space
+			int upper_v0 = (ilum0 + 128) >> 8;
+			int upper_v1 = (ilum1 + 128) >> 8;
+
+			upper_v0 = ASTCMath.clamp(upper_v0, 0, 255);
+			upper_v1 = ASTCMath.clamp(upper_v1, 0, 255);
+
+			// find the closest encodable point in the lower half of the code-point space
+			int lower_v0 = (ilum1 + 256) >> 8;
+			int lower_v1 = ilum0 >> 8;
+
+			lower_v0 = ASTCMath.clamp(lower_v0, 0, 255);
+			lower_v1 = ASTCMath.clamp(lower_v1, 0, 255);
+
+			// determine the distance between the point in code-point space and the input value
+			int upper0_dec = upper_v0 << 8;
+			int upper1_dec = upper_v1 << 8;
+			int lower0_dec = (lower_v1 << 8) + 128;
+			int lower1_dec = (lower_v0 << 8) - 128;
+
+			int upper0_diff = upper0_dec - ilum0;
+			int upper1_diff = upper1_dec - ilum1;
+			int lower0_diff = lower0_dec - ilum0;
+			int lower1_diff = lower1_dec - ilum1;
+
+			int upper_error = (upper0_diff * upper0_diff) + (upper1_diff * upper1_diff);
+			int lower_error = (lower0_diff * lower0_diff) + (lower1_diff * lower1_diff);
+
+			int v0, v1;
+			if (upper_error < lower_error)
+			{
+				v0 = upper_v0;
+				v1 = upper_v1;
+			}
+			else
+			{
+				v0 = lower_v0;
+				v1 = lower_v1;
+			}
+
+			// OK; encode.
+			output[0] = color_quant_tables[quant_level, v0];
+			output[1] = color_quant_tables[quant_level, v1];
+		}
+
+		static bool try_quantize_hdr_luminance_small_range3(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level)
+		{
+			float lum0 = hadd_rgb_s(color0) * (1.0f / 3.0f);
+			float lum1 = hadd_rgb_s(color1) * (1.0f / 3.0f);
+
+			if (lum1 < lum0)
+			{
+				float avg = (lum0 + lum1) * 0.5f;
+				lum0 = avg;
+				lum1 = avg;
+			}
+
+			int ilum1 = ASTCMath.flt2int_rtn(lum1);
+			int ilum0 = ASTCMath.flt2int_rtn(lum0);
+
+			// difference of more than a factor-of-2 results in immediate failure.
+			if (ilum1 - ilum0 > 2048)
+			{
+				return false;
+			}
+
+			int lowval, highval, diffval;
+			int v0, v1;
+			int v0e, v1e;
+			int v0d, v1d;
+
+			// first, try to encode the high-precision submode
+			lowval = (ilum0 + 16) >> 5;
+			highval = (ilum1 + 16) >> 5;
+
+			lowval = ASTCMath.clamp(lowval, 0, 2047);
+			highval = ASTCMath.clamp(highval, 0, 2047);
+
+			v0 = lowval & 0x7F;
+			v0e = color_quant_tables[quant_level, v0];
+			v0d = color_unquant_tables[quant_level, v0e];
+
+			if (v0d < 0x80)
+			{
+				lowval = (lowval & ~0x7F) | v0d;
+				diffval = highval - lowval;
+				if (diffval >= 0 && diffval <= 15)
+				{
+					v1 = ((lowval >> 3) & 0xF0) | diffval;
+					v1e = color_quant_tables[quant_level, v1];
+					v1d = color_unquant_tables[quant_level, v1e];
+					if ((v1d & 0xF0) == (v1 & 0xF0))
+					{
+						output[0] = v0e;
+						output[1] = v1e;
+						return true;
+					}
+				}
+			}
+
+			// failed to encode the high-precision submode; well, then try to encode the
+			// low-precision submode.
+
+			lowval = (ilum0 + 32) >> 6;
+			highval = (ilum1 + 32) >> 6;
+
+			lowval = ASTCMath.clamp(lowval, 0, 1023);
+			highval = ASTCMath.clamp(highval, 0, 1023);
+
+			v0 = (lowval & 0x7F) | 0x80;
+			v0e = color_quant_tables[quant_level, v0];
+			v0d = color_unquant_tables[quant_level, v0e];
+			if ((v0d & 0x80) == 0)
+			{
+				return false;
+			}
+
+			lowval = (lowval & ~0x7F) | (v0d & 0x7F);
+			diffval = highval - lowval;
+			if (diffval < 0 || diffval > 31)
+			{
+				return false;
+			}
+
+			v1 = ((lowval >> 2) & 0xE0) | diffval;
+			v1e = color_quant_tables[quant_level, v1];
+			v1d = color_unquant_tables[quant_level, v1e];
+			if ((v1d & 0xE0) != (v1 & 0xE0))
+			{
+				return false;
+			}
+
+			output[0] = v0e;
+			output[1] = v1e;
+			return true;
+		}
+
+		static void quantize_hdr_alpha3(float alpha0, float alpha1, ref int[] output, int quant_level) 
+		{
+			alpha0 = ASTCMath.clamp(alpha0, 0.0f, 65280.0f);
+			alpha1 = ASTCMath.clamp(alpha1, 0.0f, 65280.0f);
+
+			int ialpha0 = ASTCMath.flt2int_rtn(alpha0);
+			int ialpha1 = ASTCMath.flt2int_rtn(alpha1);
+
+			int val0, val1, diffval;
+			int v6, v7;
+			int v6e, v7e;
+			int v6d, v7d;
+
+			// try to encode one of the delta submodes, in decreasing-precision order.
+			for (int i = 2; i >= 0; i--)
+			{
+				val0 = (ialpha0 + (128 >> i)) >> (8 - i);
+				val1 = (ialpha1 + (128 >> i)) >> (8 - i);
+
+				v6 = (val0 & 0x7F) | ((i & 1) << 7);
+				v6e = color_quant_tables[quant_level, v6];
+				v6d = color_unquant_tables[quant_level, v6e];
+
+				if (((v6 ^ v6d) & 0x80) == 1)
+				{
+					continue;
+				}
+
+				val0 = (val0 & ~0x7f) | (v6d & 0x7f);
+				diffval = val1 - val0;
+				int cutoff = 32 >> i;
+				int mask = 2 * cutoff - 1;
+
+				if (diffval < -cutoff || diffval >= cutoff)
+				{
+					continue;
+				}
+
+				v7 = ((i & 2) << 6) | ((val0 >> 7) << (6 - i)) | (diffval & mask);
+				v7e = color_quant_tables[quant_level, v7];
+				v7d = color_unquant_tables[quant_level, v7e];
+
+				int[] testbits = new int[3] { 0xE0, 0xF0, 0xF8 };
+
+				if (((v7 ^ v7d) & testbits[i]) == 1)
+				{
+					continue;
+				}
+
+				output[0] = v6e;
+				output[1] = v7e;
+				return;
+			}
+
+			// could not encode any of the delta modes; instead encode a flat value
+			val0 = (ialpha0 + 256) >> 9;
+			val1 = (ialpha1 + 256) >> 9;
+			v6 = val0 | 0x80;
+			v7 = val1 | 0x80;
+
+			v6e = color_quant_tables[quant_level, v6];
+			v7e = color_quant_tables[quant_level, v7];
+			output[0] = v6e;
+			output[1] = v7e;
+
+			return;
+		}
+
+		static void quantize_hdr_rgb_alpha3(vfloat4 color0, vfloat4 color1, ref int[] output, int quant_level) 
+		{
+			quantize_hdr_rgb3(color0, color1, ref output, quant_level);
+			quantize_hdr_alpha3(color0.lane<3>(), color1.lane<3>(), output + 6, quant_level);
+		}
+
+		/*
+			Quantize a color. When quantizing an RGB or RGBA color, the quantizer may choose a
+			delta-based representation; as such, it will report back the format it actually used.
+		*/
+		EndpointFormats pack_color_endpoints(vfloat4 color0, vfloat4 color1, vfloat4 rgbs_color, vfloat4 rgbo_color, EndpointFormats format, ref int[] output, int quant_level) 
+		{
+			Debug.Assert(quant_level >= 0 && quant_level < 21);
+
+			// we do not support negative colors.
+			color0 = max(color0, 0.0f);
+			color1 = max(color1, 0.0f);
+
+			EndpointFormats retval = 0;
+
+			switch (format)
+			{
+			case EndpointFormats.FMT_RGB:
+				if (quant_level <= 18)
+				{
+					if (try_quantize_rgb_delta_blue_contract(color0, color1, ref output, quant_level))
+					{
+						retval = EndpointFormats.FMT_RGB_DELTA;
+						break;
+					}
+					if (try_quantize_rgb_delta(color0, color1, ref output, quant_level))
+					{
+						retval = EndpointFormats.FMT_RGB_DELTA;
+						break;
+					}
+				}
+				if (try_quantize_rgb_blue_contract(color0, color1, ref output, quant_level))
+				{
+					retval = EndpointFormats.FMT_RGB;
+					break;
+				}
+				quantize_rgb(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_RGB;
+				break;
+
+			case EndpointFormats.FMT_RGBA:
+				if (quant_level <= 18)
+				{
+					if (try_quantize_rgba_delta_blue_contract(color0, color1, ref output, quant_level))
+					{
+						retval = EndpointFormats.FMT_RGBA_DELTA;
+						break;
+					}
+					if (try_quantize_rgba_delta(color0, color1, ref output, quant_level))
+					{
+						retval = EndpointFormats.FMT_RGBA_DELTA;
+						break;
+					}
+				}
+				if (try_quantize_rgba_blue_contract(color0, color1, ref output, quant_level))
+				{
+					retval = EndpointFormats.FMT_RGBA;
+					break;
+				}
+				quantize_rgba(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_RGBA;
+				break;
+
+			case EndpointFormats.FMT_RGB_SCALE:
+				quantize_rgbs_new(rgbs_color, ref output, quant_level);
+				retval = EndpointFormats.FMT_RGB_SCALE;
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB_SCALE:
+				quantize_hdr_rgbo3(rgbo_color, ref output, quant_level);
+				retval = EndpointFormats.FMT_HDR_RGB_SCALE;
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB:
+				quantize_hdr_rgb3(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_HDR_RGB;
+				break;
+
+			case EndpointFormats.FMT_RGB_SCALE_ALPHA:
+				quantize_rgbs_alpha_new(color0, color1, rgbs_color, ref output, quant_level);
+				retval = EndpointFormats.FMT_RGB_SCALE_ALPHA;
+				break;
+
+			case EndpointFormats.FMT_HDR_LUMINANCE_SMALL_RANGE:
+			case EndpointFormats.FMT_HDR_LUMINANCE_LARGE_RANGE:
+				if (try_quantize_hdr_luminance_small_range3(color0, color1, ref output, quant_level))
+				{
+					retval = EndpointFormats.FMT_HDR_LUMINANCE_SMALL_RANGE;
+					break;
+				}
+				quantize_hdr_luminance_large_range3(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_HDR_LUMINANCE_LARGE_RANGE;
+				break;
+
+			case EndpointFormats.FMT_LUMINANCE:
+				quantize_luminance(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_LUMINANCE;
+				break;
+
+			case EndpointFormats.FMT_LUMINANCE_ALPHA:
+				if (quant_level <= 18)
+				{
+					if (try_quantize_luminance_alpha_delta(color0, color1, ref output, quant_level))
+					{
+						retval = EndpointFormats.FMT_LUMINANCE_ALPHA_DELTA;
+						break;
+					}
+				}
+				quantize_luminance_alpha(color0, color1, output, quant_level);
+				retval = EndpointFormats.FMT_LUMINANCE_ALPHA;
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB_LDR_ALPHA:
+				quantize_hdr_rgb_ldr_alpha3(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_HDR_RGB_LDR_ALPHA;
+				break;
+
+			case EndpointFormats.FMT_HDR_RGBA:
+				quantize_hdr_rgb_alpha3(color0, color1, ref output, quant_level);
+				retval = EndpointFormats.FMT_HDR_RGBA;
+				break;
+			}
+
+			return retval;
 		}
 	}
 }

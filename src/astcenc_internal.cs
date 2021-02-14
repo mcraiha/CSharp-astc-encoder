@@ -26,6 +26,26 @@ namespace ASTCEnc
 		QUANT_256 = 20
 	}
 
+	public enum EndpointFormats
+	{
+		FMT_LUMINANCE = 0,
+		FMT_LUMINANCE_DELTA = 1,
+		FMT_HDR_LUMINANCE_LARGE_RANGE = 2,
+		FMT_HDR_LUMINANCE_SMALL_RANGE = 3,
+		FMT_LUMINANCE_ALPHA = 4,
+		FMT_LUMINANCE_ALPHA_DELTA = 5,
+		FMT_RGB_SCALE = 6,
+		FMT_HDR_RGB_SCALE = 7,
+		FMT_RGB = 8,
+		FMT_RGB_DELTA = 9,
+		FMT_RGB_SCALE_ALPHA = 10,
+		FMT_HDR_RGB = 11,
+		FMT_RGBA = 12,
+		FMT_RGBA_DELTA = 13,
+		FMT_HDR_RGB_LDR_ALPHA = 14,
+		FMT_HDR_RGBA = 15
+	}
+
 	public static class Constants
 	{
 		/* ============================================================================
