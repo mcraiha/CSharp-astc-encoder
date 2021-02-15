@@ -1,5 +1,65 @@
 namespace ASTCEnc
 {
+	// ============================================================================
+	// vfloat1 data type
+	// ============================================================================
+
+	/**
+	* @brief Data type for 1-wide floats.
+	*/
+	public struct vfloat1
+	{
+		/**
+		* @brief Construct from 1 value loaded from an unaligned address.
+		*
+		* Consider using loada() which is better with wider VLA vectors if data is
+		* aligned to vector length.
+		*/
+		public vfloat1(vfloat1 p)
+		{
+			this.m = p.m;
+		}
+
+		/**
+		* @brief Construct from 1 scalar value replicated across all lanes.
+		*
+		* Consider using zero() for constexpr zeros.
+		*/
+		public vfloat1(float a)
+		{
+			this.m = a;
+		}
+
+		/**
+		* @brief Get the scalar value of a single lane.
+		*/
+		public float lane()
+		{
+			return this.m;
+		}
+
+		/**
+		* @brief Factory that returns a vector of zeros.
+		*/
+		public static vfloat1 zero()
+		{
+			return new vfloat1(0.0f);
+		}
+
+		/**
+		* @brief Factory that returns a vector containing the lane IDs.
+		*/
+		public static vfloat1 lane_id()
+		{
+			return new vfloat1(0.0f);
+		}
+
+		/**
+		* @brief The vector ...
+		*/
+		public float m;
+	}
+
 	public struct vfloat4
 	{
 		private const int internalSize = 4;
