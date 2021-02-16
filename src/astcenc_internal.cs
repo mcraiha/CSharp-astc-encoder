@@ -52,16 +52,35 @@ namespace ASTCEnc
 		public int block_mode;				// 0 to 2047. Negative value marks constant-color block (-1: FP16, -2:UINT16)
 		public int partition_count;		// 1 to 4; Zero marks a constant-color block.
 		public int partition_index;		// 0 to 1023
-		public int color_formats[4];		// color format for each endpoint color pair.
+		public int[] color_formats;		// color format for each endpoint color pair.
 		public int color_formats_matched;	// color format for all endpoint pairs are matched.
 		public int color_quant_level;
 		public int plane2_color_component;	// color component for the secondary plane of weights
-		public int color_values[4][12];	// quantized endpoint color pairs.
-		public int constant_color[4];		// constant-color, as FP16 or UINT16. Used for constant-color blocks only.
+		public int[,] color_values;	// quantized endpoint color pairs.
+		public int[] constant_color;		// constant-color, as FP16 or UINT16. Used for constant-color blocks only.
 		// Quantized and decimated weights. In the case of dual plane, the second
 		// index plane starts at weights[PLANE2_WEIGHTS_OFFSET]
 		public float errorval;             // The error of the current encoding
-		public uint8_t weights[MAX_WEIGHTS_PER_BLOCK];
+		public byte[] weights;
+
+		public SymbolicCompressedBlock(bool unused)
+		{
+			this.error_block = 0;
+			this.block_mode = 0;
+			this.partition_count = 0;
+			this.partition_index = 0;
+
+			this.color_formats = new int[4];
+			this.color_formats_matched = 0;
+			this.color_quant_level = 0;
+
+			this.plane2_color_component = 0;
+			this.color_values = new int[4, 12];
+			this.constant_color = new int[4];
+
+			this.errorval = 0.0f;
+			this.weights = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
+		}
 	}
 
 	public static class Constants
@@ -358,5 +377,69 @@ namespace ASTCEnc
 			this.texel_weight_b = new float[Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weight_a = new float[Constants.MAX_TEXELS_PER_BLOCK];
 		}
+	}
+
+	// ***********************************************************
+	// functions pertaining to computing texel weights for a block
+	// ***********************************************************
+	public struct Endpoints
+	{
+		public int partition_count;
+		public vfloat4[] endpt0;
+		public vfloat4[] endpt1;
+
+		public Endpoints(bool notUsed)
+		{
+			this.partition_count = 0;
+			this.endpt0 = new vfloat4[4];
+			this.endpt1 = new vfloat4[4];
+		}
+	};
+
+	public struct EndpointsAndWeights
+	{
+		public Endpoints ep;
+		public float[] weights;
+		public float[] weight_error_scale;
+
+		public EndpointsAndWeights(bool notUsed)
+		{
+			this.ep = new Endpoints(notUsed: true);
+			this.weights = new float[Constants.MAX_TEXELS_PER_BLOCK];
+			this.weight_error_scale = new float[Constants.MAX_TEXELS_PER_BLOCK];
+		}
+	}
+
+	public struct CompressFixedPartitionBuffers
+	{
+		public EndpointsAndWeights ei1;
+		public EndpointsAndWeights ei2;
+		public EndpointsAndWeights[] eix1;
+		public EndpointsAndWeights[] eix2;
+		public float[] decimated_quantized_weights;
+		public float[] decimated_weights;
+		public float[] flt_quantized_decimated_quantized_weights;
+		public byte[] u8_quantized_decimated_quantized_weights;
+
+		public CompressFixedPartitionBuffers(bool notUsed)
+		{
+			this.ei1 = new EndpointsAndWeights(notUsed: true);
+			this.ei2 = new EndpointsAndWeights(notUsed: true);
+
+			this.eix1 = new EndpointsAndWeights[Constants.MAX_DECIMATION_MODES];
+			this.eix2 = new EndpointsAndWeights[Constants.MAX_DECIMATION_MODES];
+
+			this.decimated_quantized_weights = new float[2 * Constants.MAX_DECIMATION_MODES * Constants.MAX_WEIGHTS_PER_BLOCK];
+			this.decimated_weights = new float[2 * Constants.MAX_DECIMATION_MODES * Constants.MAX_WEIGHTS_PER_BLOCK];
+
+			this.flt_quantized_decimated_quantized_weights = new float[2 * Constants.MAX_WEIGHT_MODES * Constants.MAX_WEIGHTS_PER_BLOCK];
+			this.u8_quantized_decimated_quantized_weights = new byte[2 * Constants.MAX_WEIGHT_MODES * Constants.MAX_WEIGHTS_PER_BLOCK];
+		}
+	}
+
+	public struct compress_symbolic_block_buffers
+	{
+		public ErrorWeightBlock ewb;
+		public CompressFixedPartitionBuffers planes;
 	}
 }
