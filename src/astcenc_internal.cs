@@ -46,6 +46,24 @@ namespace ASTCEnc
 		FMT_HDR_RGBA = 15
 	}
 
+	public struct SymbolicCompressedBlock
+	{
+		public int error_block;			// 1 marks error block, 0 marks non-error-block.
+		public int block_mode;				// 0 to 2047. Negative value marks constant-color block (-1: FP16, -2:UINT16)
+		public int partition_count;		// 1 to 4; Zero marks a constant-color block.
+		public int partition_index;		// 0 to 1023
+		public int color_formats[4];		// color format for each endpoint color pair.
+		public int color_formats_matched;	// color format for all endpoint pairs are matched.
+		public int color_quant_level;
+		public int plane2_color_component;	// color component for the secondary plane of weights
+		public int color_values[4][12];	// quantized endpoint color pairs.
+		public int constant_color[4];		// constant-color, as FP16 or UINT16. Used for constant-color blocks only.
+		// Quantized and decimated weights. In the case of dual plane, the second
+		// index plane starts at weights[PLANE2_WEIGHTS_OFFSET]
+		public float errorval;             // The error of the current encoding
+		public uint8_t weights[MAX_WEIGHTS_PER_BLOCK];
+	}
+
 	public static class Constants
 	{
 		/* ============================================================================

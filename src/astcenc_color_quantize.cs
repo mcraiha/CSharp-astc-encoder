@@ -468,12 +468,12 @@ namespace ASTCEnc
 				gi1 = cqt_lookup(quant_level, ASTCMath.flt2int_rd(g1 + rgb1_addon));
 				bi1 = cqt_lookup(quant_level, ASTCMath.flt2int_rd(b1 + rgb1_addon));
 
-				ri0b = color_unquant_tables[quant_level, ri0];
-				gi0b = color_unquant_tables[quant_level, gi0];
-				bi0b = color_unquant_tables[quant_level, bi0];
-				ri1b = color_unquant_tables[quant_level, ri1];
-				gi1b = color_unquant_tables[quant_level, gi1];
-				bi1b = color_unquant_tables[quant_level, bi1];
+				ri0b = ColorUnquantize.color_unquant_tables[quant_level][ri0];
+				gi0b = ColorUnquantize.color_unquant_tables[quant_level][gi0];
+				bi0b = ColorUnquantize.color_unquant_tables[quant_level][bi0];
+				ri1b = ColorUnquantize.color_unquant_tables[quant_level][ri1];
+				gi1b = ColorUnquantize.color_unquant_tables[quant_level][gi1];
+				bi1b = ColorUnquantize.color_unquant_tables[quant_level][bi1];
 
 				rgb0_addon -= 0.2f;
 				rgb1_addon += 0.2f;
@@ -540,12 +540,12 @@ namespace ASTCEnc
 			int bi1 = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(b1)];
 
 			// then unquantize again
-			int ru0 = color_unquant_tables[quant_level, ri0];
-			int gu0 = color_unquant_tables[quant_level, gi0];
-			int bu0 = color_unquant_tables[quant_level, bi0];
-			int ru1 = color_unquant_tables[quant_level, ri1];
-			int gu1 = color_unquant_tables[quant_level, gi1];
-			int bu1 = color_unquant_tables[quant_level, bi1];
+			int ru0 = ColorUnquantize.color_unquant_tables[quant_level][ri0];
+			int gu0 = ColorUnquantize.color_unquant_tables[quant_level][gi0];
+			int bu0 = ColorUnquantize.color_unquant_tables[quant_level][bi0];
+			int ru1 = ColorUnquantize.color_unquant_tables[quant_level][ri1];
+			int gu1 = ColorUnquantize.color_unquant_tables[quant_level][gi1];
+			int bu1 = ColorUnquantize.color_unquant_tables[quant_level][bi1];
 
 			// if color #1 is not larger than color #0, then blue-contraction is not a valid approach.
 			// note that blue-contraction and quantization may itself change this order, which is why
@@ -618,9 +618,9 @@ namespace ASTCEnc
 			int g0be = color_quant_tables[quant_level, g0b];
 			int b0be = color_quant_tables[quant_level, b0b];
 
-			r0b = color_unquant_tables[quant_level, r0be];
-			g0b = color_unquant_tables[quant_level, g0be];
-			b0b = color_unquant_tables[quant_level, b0be];
+			r0b = ColorUnquantize.color_unquant_tables[quant_level][r0be];
+			g0b = ColorUnquantize.color_unquant_tables[quant_level][g0be];
+			b0b = ColorUnquantize.color_unquant_tables[quant_level][b0be];
 			r0b |= r0a & 0x100;			// final unquantized-values for endpoint 0.
 			g0b |= g0a & 0x100;
 			b0b |= b0a & 0x100;
@@ -660,11 +660,11 @@ namespace ASTCEnc
 			int g1de = color_quant_tables[quant_level, g1d];
 			int b1de = color_quant_tables[quant_level, b1d];
 
-			int r1du = color_unquant_tables[quant_level, r1de];
-			int g1du = color_unquant_tables[quant_level, g1de];
-			int b1du = color_unquant_tables[quant_level, b1de];
+			int r1du = ColorUnquantize.color_unquant_tables[quant_level][r1de];
+			int g1du = ColorUnquantize.color_unquant_tables[quant_level][g1de];
+			int b1du = ColorUnquantize.color_unquant_tables[quant_level][b1de];
 
-			if (((r1d ^ r1du) | (g1d ^ g1du) | (b1d ^ b1du)) & 0xC0)
+			if ((((r1d ^ r1du) | (g1d ^ g1du) | (b1d ^ b1du)) & 0xC0) == 1)
 			{
 				return false;
 			}
@@ -674,17 +674,17 @@ namespace ASTCEnc
 			g1du &= 0x7f;
 			b1du &= 0x7f;
 
-			if (r1du & 0x40)
+			if ((r1du & 0x40) == 1)
 			{
 				r1du -= 0x80;
 			}
 
-			if (g1du & 0x40)
+			if ((g1du & 0x40) == 1)
 			{
 				g1du -= 0x80;
 			}
 
-			if (b1du & 0x40)
+			if ((b1du & 0x40) == 1)
 			{
 				b1du -= 0x80;
 			}
@@ -759,9 +759,9 @@ namespace ASTCEnc
 			int g0be = color_quant_tables[quant_level, g0b];
 			int b0be = color_quant_tables[quant_level, b0b];
 
-			r0b = color_unquant_tables[quant_level, r0be];
-			g0b = color_unquant_tables[quant_level, g0be];
-			b0b = color_unquant_tables[quant_level, b0be];
+			r0b = ColorUnquantize.color_unquant_tables[quant_level][r0be];
+			g0b = ColorUnquantize.color_unquant_tables[quant_level][g0be];
+			b0b = ColorUnquantize.color_unquant_tables[quant_level][b0be];
 			r0b |= r0a & 0x100;			// final unquantized-values for endpoint 0.
 			g0b |= g0a & 0x100;
 			b0b |= b0a & 0x100;
@@ -801,9 +801,9 @@ namespace ASTCEnc
 			int g1de = color_quant_tables[quant_level, g1d];
 			int b1de = color_quant_tables[quant_level, b1d];
 
-			int r1du = color_unquant_tables[quant_level, r1de];
-			int g1du = color_unquant_tables[quant_level, g1de];
-			int b1du = color_unquant_tables[quant_level, b1de];
+			int r1du = ColorUnquantize.color_unquant_tables[quant_level][r1de];
+			int g1du = ColorUnquantize.color_unquant_tables[quant_level][g1de];
+			int b1du = ColorUnquantize.color_unquant_tables[quant_level][b1de];
 
 			if (((r1d ^ r1du) | (g1d ^ g1du) | (b1d ^ b1du)) & 0xC0)
 			{
@@ -868,7 +868,7 @@ namespace ASTCEnc
 			a0a <<= 1;
 			int a0b = a0a & 0xFF;
 			int a0be = color_quant_tables[quant_level, a0b];
-			a0b = color_unquant_tables[quant_level, a0be];
+			a0b = ColorUnquantize.color_unquant_tables[quant_level][a0be];
 			a0b |= a0a & 0x100;
 			int a1d = ASTCMath.flt2int_rtn(a1);
 			a1d <<= 1;
@@ -880,7 +880,7 @@ namespace ASTCEnc
 			a1d &= 0x7F;
 			a1d |= (a0b & 0x100) >> 1;
 			int a1de = color_quant_tables[quant_level, a1d];
-			int a1du = color_unquant_tables[quant_level, a1de];
+			int a1du = ColorUnquantize.color_unquant_tables[quant_level][a1de];
 			if (((a1d ^ a1du) & 0xC0) == 1)
 			{
 				return false;
@@ -918,8 +918,8 @@ namespace ASTCEnc
 			int a0b = a0a & 0xFF;
 			int l0be = color_quant_tables[quant_level, l0b];
 			int a0be = color_quant_tables[quant_level, a0b];
-			l0b = color_unquant_tables[quant_level, l0be];
-			a0b = color_unquant_tables[quant_level, a0be];
+			l0b = ColorUnquantize.color_unquant_tables[quant_level][l0be];
+			a0b = ColorUnquantize.color_unquant_tables[quant_level][a0be];
 			l0b |= l0a & 0x100;
 			a0b |= a0a & 0x100;
 			int l1d = ASTCMath.flt2int_rtn(l1);
@@ -943,8 +943,8 @@ namespace ASTCEnc
 
 			int l1de = color_quant_tables[quant_level, l1d];
 			int a1de = color_quant_tables[quant_level, a1d];
-			int l1du = color_unquant_tables[quant_level, l1de];
-			int a1du = color_unquant_tables[quant_level, a1de];
+			int l1du = ColorUnquantize.color_unquant_tables[quant_level][l1de];
+			int a1du = ColorUnquantize.color_unquant_tables[quant_level][a1de];
 			if (((l1d ^ l1du) & 0xC0) == 1)
 			{
 				return false;
@@ -1019,9 +1019,9 @@ namespace ASTCEnc
 			int gi = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(g)];
 			int bi = color_quant_tables[quant_level, ASTCMath.flt2int_rtn(b)];
 
-			int ru = color_unquant_tables[quant_level, ri];
-			int gu = color_unquant_tables[quant_level, gi];
-			int bu = color_unquant_tables[quant_level, bi];
+			int ru = ColorUnquantize.color_unquant_tables[quant_level][ri];
+			int gu = ColorUnquantize.color_unquant_tables[quant_level][gi];
+			int bu = ColorUnquantize.color_unquant_tables[quant_level][bi];
 
 			float oldcolorsum = hadd_rgb_s(rgbs_color) * scale;
 			float newcolorsum = (float)(ru + gu + bu);
@@ -1139,7 +1139,7 @@ namespace ASTCEnc
 			do
 			{
 				quantval = color_quant_tables[quant_level, value_to_quantize];
-				uquantval = color_unquant_tables[quant_level, quantval];
+				uquantval = ColorUnquantize.color_unquant_tables[quant_level][quantval];
 
 				// perform looping if the top two bits were modified by quant/unquant
 				perform_loop = (value_to_quantize & 0xC0) != (uquantval & 0xC0);
@@ -1172,7 +1172,7 @@ namespace ASTCEnc
 			do
 			{
 				quantval = color_quant_tables[quant_level, value_to_quantize];
-				uquantval = color_unquant_tables[quant_level, quantval];
+				uquantval = ColorUnquantize.color_unquant_tables[quant_level][quantval];
 
 				// perform looping if the top two bits were modified by quant/unquant
 				perform_loop = (value_to_quantize & 0xF0) != (uquantval & 0xF0);
@@ -1630,7 +1630,7 @@ namespace ASTCEnc
 				int a_lowbits = a_intval & 0xFF;
 
 				int a_quantval = color_quant_tables[quant_level, a_lowbits];
-				int a_uquantval = color_unquant_tables[quant_level, a_quantval];
+				int a_uquantval = ColorUnquantize.color_unquant_tables[quant_level][a_quantval];
 				a_intval = (a_intval & ~0xFF) | a_uquantval;
 				float a_fval = static_cast<float>(a_intval) * mode_rscale;
 
@@ -1974,7 +1974,7 @@ namespace ASTCEnc
 
 			v0 = lowval & 0x7F;
 			v0e = color_quant_tables[quant_level, v0];
-			v0d = color_unquant_tables[quant_level, v0e];
+			v0d = ColorUnquantize.color_unquant_tables[quant_level][v0e];
 
 			if (v0d < 0x80)
 			{
@@ -1984,7 +1984,7 @@ namespace ASTCEnc
 				{
 					v1 = ((lowval >> 3) & 0xF0) | diffval;
 					v1e = color_quant_tables[quant_level, v1];
-					v1d = color_unquant_tables[quant_level, v1e];
+					v1d = ColorUnquantize.color_unquant_tables[quant_level][v1e];
 					if ((v1d & 0xF0) == (v1 & 0xF0))
 					{
 						output[0] = v0e;
@@ -2005,7 +2005,7 @@ namespace ASTCEnc
 
 			v0 = (lowval & 0x7F) | 0x80;
 			v0e = color_quant_tables[quant_level, v0];
-			v0d = color_unquant_tables[quant_level, v0e];
+			v0d = ColorUnquantize.color_unquant_tables[quant_level][v0e];
 			if ((v0d & 0x80) == 0)
 			{
 				return false;
@@ -2020,7 +2020,7 @@ namespace ASTCEnc
 
 			v1 = ((lowval >> 2) & 0xE0) | diffval;
 			v1e = color_quant_tables[quant_level, v1];
-			v1d = color_unquant_tables[quant_level, v1e];
+			v1d = ColorUnquantize.color_unquant_tables[quant_level][v1e];
 			if ((v1d & 0xE0) != (v1 & 0xE0))
 			{
 				return false;
@@ -2052,7 +2052,7 @@ namespace ASTCEnc
 
 				v6 = (val0 & 0x7F) | ((i & 1) << 7);
 				v6e = color_quant_tables[quant_level, v6];
-				v6d = color_unquant_tables[quant_level, v6e];
+				v6d = ColorUnquantize.color_unquant_tables[quant_level][v6e];
 
 				if (((v6 ^ v6d) & 0x80) == 1)
 				{
@@ -2071,7 +2071,7 @@ namespace ASTCEnc
 
 				v7 = ((i & 2) << 6) | ((val0 >> 7) << (6 - i)) | (diffval & mask);
 				v7e = color_quant_tables[quant_level, v7];
-				v7d = color_unquant_tables[quant_level, v7e];
+				v7d = ColorUnquantize.color_unquant_tables[quant_level][v7e];
 
 				int[] testbits = new int[3] { 0xE0, 0xF0, 0xF8 };
 

@@ -4,7 +4,7 @@ namespace ASTCEnc
 {
 	public static class ColorUnquantize
 	{
-		private static readonly byte[][] color_unquant_tables = new byte[21][] 
+		public static readonly byte[][] color_unquant_tables = new byte[21][] 
 		{
 			new byte[] {
 				0, 255
@@ -245,16 +245,16 @@ namespace ASTCEnc
 
 		static void rgba_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
 		{
-			int order = rgb_unpack(input, quant_level, output0, output1);
+			int order = rgb_unpack(input, quant_level, out output0, out output1);
 			if (order == 0)
 			{
-				output0->set_lane<3>(color_unquant_tables[quant_level][input[6]]);
-				output1->set_lane<3>(color_unquant_tables[quant_level][input[7]]);
+				output0.set_lane(3, color_unquant_tables[quant_level][input[6]]);
+				output1.set_lane(3, color_unquant_tables[quant_level][input[7]]);
 			}
 			else
 			{
-				output0->set_lane<3>(color_unquant_tables[quant_level][input[7]]);
-				output1->set_lane<3>(color_unquant_tables[quant_level][input[6]]);
+				output0.set_lane(3, color_unquant_tables[quant_level][input[7]]);
+				output1.set_lane(3, color_unquant_tables[quant_level][input[6]]);
 			}
 		}
 
@@ -272,16 +272,16 @@ namespace ASTCEnc
 
 			a1 = ASTCMath.clamp(a1, 0, 255);
 
-			int order = rgb_delta_unpack(input, quant_level, output0, output1);
+			int order = rgb_delta_unpack(input, quant_level, out output0, out output1);
 			if (order == 0)
 			{
-				output0->set_lane<3>(a0);
-				output1->set_lane<3>(a1);
+				output0.set_lane(3, a0);
+				output1.set_lane(3, a1);
 			}
 			else
 			{
-				output0->set_lane<3>(a1);
-				output1->set_lane<3>(a0);
+				output0.set_lane(3, a1);
+				output1.set_lane(3, a0);
 			}
 		}
 
@@ -299,9 +299,9 @@ namespace ASTCEnc
 
 		static void rgb_scale_alpha_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
 		{
-			rgb_scale_unpack(input, quant_level, output0, output1);
-			output0->set_lane<3>(color_unquant_tables[quant_level][input[4]]);
-			output1->set_lane<3>(color_unquant_tables[quant_level][input[5]]);
+			rgb_scale_unpack(input, quant_level, out output0, out output1);
+			output0.set_lane(3, color_unquant_tables[quant_level][input[4]]);
+			output1.set_lane(3, color_unquant_tables[quant_level][input[5]]);
 		}
 
 		static void luminance_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
@@ -322,7 +322,7 @@ namespace ASTCEnc
 			l1 = Math.Min(l1, 255);
 
 			output0 = new vint4(l0, l0, l0, 255);
-			output1 = new ProcessedLine2vint4(l1, l1, l1, 255);
+			output1 = new vint4(l1, l1, l1, 255);
 		}
 
 		static void luminance_alpha_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
@@ -366,7 +366,7 @@ namespace ASTCEnc
 		}
 
 		// RGB-offset format
-		static void hdr_rgbo_unpack3(int[] input, int quant_level, vint4 output0, vint4 output1) 
+		static void hdr_rgbo_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
 		{
 			int v0 = color_unquant_tables[quant_level][input[0]];
 			int v1 = color_unquant_tables[quant_level][input[1]];
@@ -659,12 +659,278 @@ namespace ASTCEnc
 
 		static void hdr_rgb_ldr_alpha_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
 		{
-			hdr_rgb_unpack3(input, quant_level, output0, output1);
+			hdr_rgb_unpack3(input, quant_level, out output0, out output1);
 
 			int v6 = color_unquant_tables[quant_level][input[6]];
 			int v7 = color_unquant_tables[quant_level][input[7]];
-			output0->set_lane<3>(v6);
-			output1->set_lane<3>(v7);
+			output0.set_lane(3, v6);
+			output1.set_lane(3, v7);
+		}
+
+		static void hdr_luminance_small_range_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
+		{
+			int v0 = color_unquant_tables[quant_level][input[0]];
+			int v1 = color_unquant_tables[quant_level][input[1]];
+
+			int y0, y1;
+			if ((v0 & 0x80) == 1)
+			{
+				y0 = ((v1 & 0xE0) << 4) | ((v0 & 0x7F) << 2);
+				y1 = (v1 & 0x1F) << 2;
+			}
+			else
+			{
+				y0 = ((v1 & 0xF0) << 4) | ((v0 & 0x7F) << 1);
+				y1 = (v1 & 0xF) << 1;
+			}
+
+			y1 += y0;
+			if (y1 > 0xFFF)
+				y1 = 0xFFF;
+
+			output0 = new vint4(y0 << 4, y0 << 4, y0 << 4, 0x7800);
+			output1 = new vint4(y1 << 4, y1 << 4, y1 << 4, 0x7800);
+		}
+
+		static void hdr_luminance_large_range_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
+		{
+			int v0 = color_unquant_tables[quant_level][input[0]];
+			int v1 = color_unquant_tables[quant_level][input[1]];
+
+			int y0, y1;
+			if (v1 >= v0)
+			{
+				y0 = v0 << 4;
+				y1 = v1 << 4;
+			}
+			else
+			{
+				y0 = (v1 << 4) + 8;
+				y1 = (v0 << 4) - 8;
+			}
+			output0 = new vint4(y0 << 4, y0 << 4, y0 << 4, 0x7800);
+			output1 = new vint4(y1 << 4, y1 << 4, y1 << 4, 0x7800);
+		}
+
+		static void hdr_alpha_unpack(int[] input, int quant_level, out int output0, out int output1) 
+		{
+			int v6 = color_unquant_tables[quant_level][input[0]];
+			int v7 = color_unquant_tables[quant_level][input[1]];
+
+			int selector = ((v6 >> 7) & 1) | ((v7 >> 6) & 2);
+			v6 &= 0x7F;
+			v7 &= 0x7F;
+			if (selector == 3)
+			{
+				output0 = v6 << 5;
+				output1 = v7 << 5;
+			}
+			else
+			{
+				v6 |= (v7 << (selector + 1)) & 0x780;
+				v7 &= (0x3f >> selector);
+				v7 ^= 32 >> selector;
+				v7 -= 32 >> selector;
+				v6 <<= (4 - selector);
+				v7 <<= (4 - selector);
+				v7 += v6;
+
+				if (v7 < 0)
+					v7 = 0;
+				else if (v7 > 0xFFF)
+					v7 = 0xFFF;
+
+				output0 = v6;
+				output1 = v7;
+			}
+
+			output0 <<= 4;
+			output1 <<= 4;
+		}
+
+		static void hdr_rgb_hdr_alpha_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
+		{
+			hdr_rgb_unpack3(input, quant_level, out output0, out output1);
+
+			int alpha0, alpha1;
+			hdr_alpha_unpack(input + 6, quant_level, out alpha0, out alpha1);
+
+			output0.set_lane(3, lpha0);
+			output1.set_lane(3, alpha1);
+		}
+
+		void unpack_color_endpoints(ASTCEncProfile decode_mode, EndpointFormats format, int quant_level, int[] input, out int rgb_hdr, out int alpha_hdr, out int nan_endpoint, out vint4 output0, out vint4 output1) 
+		{
+			nan_endpoint = 0;
+
+			// TODO: Make format the correct enum type
+			switch (format)
+			{
+			case EndpointFormats.FMT_LUMINANCE:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				luminance_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_LUMINANCE_DELTA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				luminance_delta_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_LUMINANCE_SMALL_RANGE:
+				rgb_hdr = 1;
+				alpha_hdr = -1;
+				hdr_luminance_small_range_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_LUMINANCE_LARGE_RANGE:
+				rgb_hdr = 1;
+				alpha_hdr = -1;
+				hdr_luminance_large_range_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_LUMINANCE_ALPHA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				luminance_alpha_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_LUMINANCE_ALPHA_DELTA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				luminance_alpha_delta_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGB_SCALE:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgb_scale_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGB_SCALE_ALPHA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgb_scale_alpha_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB_SCALE:
+				rgb_hdr = 1;
+				alpha_hdr = -1;
+				hdr_rgbo_unpack3(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGB:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgb_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGB_DELTA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgb_delta_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB:
+				rgb_hdr = 1;
+				alpha_hdr = -1;
+				hdr_rgb_unpack3(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGBA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgba_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_RGBA_DELTA:
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				rgba_delta_unpack(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_RGB_LDR_ALPHA:
+				rgb_hdr = 1;
+				alpha_hdr = 0;
+				hdr_rgb_ldr_alpha_unpack3(input, quant_level, out output0, out output1);
+				break;
+
+			case EndpointFormats.FMT_HDR_RGBA:
+				rgb_hdr = 1;
+				alpha_hdr = 1;
+				hdr_rgb_hdr_alpha_unpack3(input, quant_level, out output0, out output1);
+				break;
+			}
+
+			if (alpha_hdr == -1)
+			{
+				if (decode_mode == ASTCEncProfile.ASTCENC_PRF_HDR)
+				{
+					output0.set_lane(3, 0x7800);
+					output1.set_lane(3, 0x7800);
+					alpha_hdr = 1;
+				}
+				else
+				{
+					output0.set_lane(3, 0x00FF);
+					output1.set_lane(3, 0x00FF);
+					alpha_hdr = 0;
+				}
+			}
+
+			switch (decode_mode)
+			{
+			case ASTCEncProfile.ASTCENC_PRF_LDR_SRGB:
+				if (rgb_hdr == 1)
+				{
+					output0 = new vint4(0xFF00, 0x0000, 0xFF00, 0xFF00);
+					output1 = new vint4(0xFF00, 0x0000, 0xFF00, 0xFF00);
+				}
+				else
+				{
+					output0 = output0 * 257;
+					output1 = output1 * 257;
+				}
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				break;
+
+			case ASTCEncProfile.ASTCENC_PRF_LDR:
+				if (rgb_hdr == 1)
+				{
+					output0 = new vint4(0xFFFF);
+					output1 = new vint4(0xFFFF);
+					nan_endpoint = 1;
+				}
+				else
+				{
+					output0 = output0 * 257;
+					output1 = output1 * 257;
+				}
+				rgb_hdr = 0;
+				alpha_hdr = 0;
+				break;
+
+			case ASTCEncProfile.ASTCENC_PRF_HDR_RGB_LDR_A:
+			case ASTCEncProfile.ASTCENC_PRF_HDR:
+				if (rgb_hdr == 0)
+				{
+					output0.set_lane(0, output0.lane(0) * 257);
+					output0.set_lane(1, output0.lane(1) * 257);
+					output0.set_lane(2, output0.lane(2) * 257);
+
+					output1.set_lane(0, output1.lane(0) * 257);
+					output1.set_lane(1, output1.lane(1) * 257);
+					output1.set_lane(2, output1.lane(2) * 257);
+				}
+				if (alpha_hdr == 0)
+				{
+					output0.set_lane(3, output0.lane(3) * 257);
+					output1.set_lane(3, output1.lane(3) * 257);
+				}
+				break;
+			}
 		}
 	}
 }
