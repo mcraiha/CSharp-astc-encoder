@@ -83,6 +83,15 @@ namespace ASTCEnc
 		}
 	}
 
+	public struct PhysicalCompressedBlock
+	{
+		public byte[] data;
+		public PhysicalCompressedBlock(bool unused)
+		{
+			this.data = new byte[16];
+		}
+	}
+
 	public static class Constants
 	{
 		/* ============================================================================
@@ -319,7 +328,7 @@ namespace ASTCEnc
 		public byte[] rgb_lns;      // 1 if RGB data are being treated as LNS
 		public byte[] alpha_lns;    // 1 if Alpha data are being treated as LNS
 		public byte[] nan_texel;    // 1 if the texel is a NaN-texel.
-		int xpos, ypos, zpos;
+		public int xpos, ypos, zpos;
 
 		public ImageBlock(bool notUsed)
 		{
@@ -441,5 +450,42 @@ namespace ASTCEnc
 	{
 		public ErrorWeightBlock ewb;
 		public CompressFixedPartitionBuffers planes;
+	}
+
+	public struct astcenc_context
+	{
+		public ASTCEncConfig config;
+		public uint thread_count;
+		public BlockSizeDescriptor bsd;
+
+		// Fields below here are not needed in a decompress-only build, but some
+		// remain as they are small and it avoids littering the code with #ifdefs.
+		// The most significant contributors to large structure size are omitted.
+
+		// Regional average-and-variance information, initialized by
+		// compute_averages_and_variances() only if the astc encoder
+		// is requested to do error weighting based on averages and variances.
+		public vfloat4[] input_averages;
+		public vfloat4[] input_variances;
+		public float[] input_alpha_averages;
+
+		compress_symbolic_block_buffers working_buffers;
+
+		pixel_region_variance_args arg;
+		avg_var_args ag;
+
+		public float[] deblock_weights;
+
+		ParallelManager manage_avg_var;
+		ParallelManager manage_compress;
+
+		public astcenc_context(bool unused)
+		{
+			this.config = new ASTCEncConfig();
+			this.thread_count = 0;
+			this.bsd = new BlockSizeDescriptor();
+
+			this.deblock_weights = new float[Constants.MAX_TEXELS_PER_BLOCK];
+		}
 	}
 }

@@ -83,7 +83,7 @@ namespace ASTCEnc
 	/**
 	* @brief A texel channel data format.
 	*/
-	enum ASTCEncType 
+	public enum ASTCEncType 
 	{
 		/** @brief Unorm 8-bit data per channel. */
 		ASTCENC_TYPE_U8 = 0,
@@ -105,64 +105,64 @@ namespace ASTCEnc
 	* the value in the config applies to the channel that exists after any
 	* compression data swizzle is applied.
 	*/
-	struct ASTCEncConfig 
+	public struct ASTCEncConfig 
 	{
 		/** @brief The color profile. */
-		ASTCEncProfile profile;
+		public ASTCEncProfile profile;
 
 		/** @brief The set of set flags. */
-		uint flags;
+		public uint flags;
 
 		/** @brief The ASTC block size X dimension. */
-		uint block_x;
+		public uint block_x;
 
 		/** @brief The ASTC block size Y dimension. */
-		uint block_y;
+		public uint block_y;
 
 		/** @brief The ASTC block size Z dimension. */
-		uint block_z;
+		public uint block_z;
 
 		/** @brief The size of the texel kernel for error weighting (-v). */
-		uint v_rgba_radius;
+		public uint v_rgba_radius;
 
 		/** @brief The mean and stdev channel mix for error weighting (-v). */
-		float v_rgba_mean_stdev_mix;
+		public float v_rgba_mean_stdev_mix;
 
 		/** @brief The texel RGB power for error weighting (-v). */
-		float v_rgb_power;
+		public float v_rgb_power;
 
 		/** @brief The texel RGB base weight for error weighting (-v). */
-		float v_rgb_base;
+		public float v_rgb_base;
 
 		/** @brief The texel RGB mean weight for error weighting (-v). */
-		float v_rgb_mean;
+		public float v_rgb_mean;
 
 		/** @brief The texel RGB stdev for error weighting (-v). */
-		float v_rgb_stdev;
+		public float v_rgb_stdev;
 
 		/** @brief The texel A power for error weighting (-va). */
-		float v_a_power;
+		public float v_a_power;
 
 		/** @brief The texel A base weight for error weighting (-va). */
-		float v_a_base;
+		public float v_a_base;
 
 		/** @brief The texel A mean weight for error weighting (-va). */
-		float v_a_mean;
+		public float v_a_mean;
 
 		/** @brief The texel A stdev for error weighting (-va). */
-		float v_a_stdev;
+		public float v_a_stdev;
 
 		/** @brief The red channel weight scale for error weighting (-cw). */
-		float cw_r_weight;
+		public float cw_r_weight;
 
 		/** @brief The green channel weight scale for error weighting (-cw). */
-		float cw_g_weight;
+		public float cw_g_weight;
 
 		/** @brief The blue channel weight scale for error weighting (-cw). */
-		float cw_b_weight;
+		public float cw_b_weight;
 
 		/** @brief The alpha channel weight scale for error weighting (-cw). */
-		float cw_a_weight;
+		public float cw_a_weight;
 
 		/**
 		* @brief The radius for any alpha-weight scaling (-a).
@@ -172,28 +172,28 @@ namespace ASTCEnc
 		* minimize color bleed out of transparent texels that are adjcent to
 		* non-transparent texels.
 		*/
-		uint a_scale_radius;
+		public uint a_scale_radius;
 
 		/**
 		* @brief The additional weight for block edge texels (-b).
 		*
 		* This is generic tool for reducing artefacts visible on block changes.
 		*/
-		float b_deblock_weight;
+		public float b_deblock_weight;
 
 		/**
 		* @brief The maximum number of partitions searched (-partitionlimit).
 		*
 		* Valid values are between 1 and 1024.
 		*/
-		uint tune_partition_limit;
+		public uint tune_partition_limit;
 
 		/**
 		* @brief The maximum centile for block modes searched (-blockmodelimit).
 		*
 		* Valid values are between 1 and 100.
 		*/
-		uint tune_block_mode_limit;
+		public uint tune_block_mode_limit;
 
 		/**
 		* @brief The maximum iterative refinements applied (-refinementlimit).
@@ -201,21 +201,21 @@ namespace ASTCEnc
 		* Valid values are between 1 and N; there is no technical upper limit
 		* but little benefit is expected after N=4.
 		*/
-		uint tune_refinement_limit;
+		public uint tune_refinement_limit;
 
 		/**
 		* @brief The number of trial candidates per mode search (-candidatelimit).
 		*
 		* Valid values are between 1 and TUNE_MAX_TRIAL_CANDIDATES (default 4).
 		*/
-		uint tune_candidate_limit;
+		public uint tune_candidate_limit;
 
 		/**
 		* @brief The dB threshold for stopping block search (-dblimit).
 		*
 		* This option is ineffective for HDR textures.
 		*/
-		float tune_db_limit;
+		public float tune_db_limit;
 
 		/**
 		* @brief The amount of overshoot needed to early-out mode 0 fast path.
@@ -226,7 +226,7 @@ namespace ASTCEnc
 		* force this to overshoot the MSE threshold needed to hit the block-local
 		* db_limit e.g. 1.0 = no overshoot, 2.0 = need half the error to trigger.
 		*/
-		float tune_mode0_mse_overshoot;
+		public float tune_mode0_mse_overshoot;
 
 		/**
 		* @brief The amount of overshoot needed to early-out refinement.
@@ -239,22 +239,22 @@ namespace ASTCEnc
 		* soon as the target is hit, but does reduce image quality vs the
 		* default behavior of over-refinement.
 		*/
-		float tune_refinement_mse_overshoot;
+		public float tune_refinement_mse_overshoot;
 
 		/**
 		* @brief The threshold for skipping 3+ partitions (-partitionearlylimit).
 		*
 		* This option is ineffective for normal maps.
 		*/
-		float tune_partition_early_out_limit;
+		public float tune_partition_early_out_limit;
 
 		/**
 		* @brief The threshold for skipping 2 weight planess (-planecorlimit).
 		*
 		* This option is ineffective for normal maps.
 		*/
-		float tune_two_plane_early_out_limit;
-	};
+		public float tune_two_plane_early_out_limit;
+	}
 
 	/**
 	* @brief An uncompressed 2D or 3D image.
@@ -262,18 +262,18 @@ namespace ASTCEnc
 	* 3D image are passed in as an array of 2D slices. Each slice has identical
 	* size and color format.
 	*/
-	struct ASTCEncImage {
+	public struct ASTCEncImage {
 		/** @brief The X dimension of the image, in texels. */
-		uint dim_x;
+		public uint dim_x;
 		/** @brief The Y dimension of the image, in texels. */
-		uint dim_y;
+		public uint dim_y;
 		/** @brief The Z dimension of the image, in texels. */
-		uint dim_z;
+		public uint dim_z;
 		/** @brief The data type per channel. */
-		ASTCEncType data_type;
+		public ASTCEncType data_type;
 		/** @brief The array of 2D slices, of length dim_z. */
-		byte[] data;
-	};
+		public byte[] data;
+	}
 
 	/**
 	* @brief A codec color profile.
