@@ -71,13 +71,13 @@ namespace ASTCEnc
 	public struct ASTCEncSwizzle
 	{
 		/** @brief The red channel selector. */
-		ASTCEncSwizzleChannel r;
+		public ASTCEncSwizzleChannel r;
 		/** @brief The green channel selector. */
-		ASTCEncSwizzleChannel g;
+		public ASTCEncSwizzleChannel g;
 		/** @brief The blue channel selector. */
-		ASTCEncSwizzleChannel b;
+		public ASTCEncSwizzleChannel b;
 		/** @brief The alpha channel selector. */
-		ASTCEncSwizzleChannel a;
+		public ASTCEncSwizzleChannel a;
 	}
 
 	/**

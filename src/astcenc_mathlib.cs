@@ -170,6 +170,35 @@ namespace ASTCEnc
 
 	public static class ASTCMath
 	{
+		/**
+		* @brief Clamp a value value between @c mn and @c mx.
+		*
+		* For floats, NaNs are turned into @c mn.
+		*
+		* @param v      The value to clamp.
+		* @param mn     The min value (inclusive).
+		* @param mx     The max value (inclusive).
+		*
+		* @return The clamped value.
+		*/
+		public static int clamp(int v, int mn, int mx)
+		{
+			// Do not reorder; correct NaN handling relies on the fact that comparison
+			// with NaN returns false and will fall-though to the "min" value.
+			if (v > mx) return mx;
+			if (v > mn) return v;
+			return mn;
+		}
+
+		public static uint clamp(uint v, uint mn, uint mx)
+		{
+			// Do not reorder; correct NaN handling relies on the fact that comparison
+			// with NaN returns false and will fall-though to the "min" value.
+			if (v > mx) return mx;
+			if (v > mn) return v;
+			return mn;
+		}
+
 		public static float clamp1f(float value)
 		{
 			return (value < 0.0f) ? 0.0f : (value > 1.0f) ? 1.0f : value; 

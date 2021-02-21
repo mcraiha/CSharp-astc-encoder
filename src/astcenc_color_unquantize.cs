@@ -358,8 +358,8 @@ namespace ASTCEnc
 			lum1 += lum0;
 			alpha1 += alpha0;
 
-			lum1 = astc::clamp(lum1, 0, 255);
-			alpha1 = astc::clamp(alpha1, 0, 255);
+			lum1 = ASTCMath.clamp(lum1, 0, 255);
+			alpha1 = ASTCMath.clamp(alpha1, 0, 255);
 
 			output0 = new vint4(lum0, lum0, lum0, alpha0);
 			output1 = new vint4(lum1, lum1, lum1, alpha1);

@@ -556,4 +556,60 @@ namespace ASTCEnc
 			this.deblock_weights = new float[Constants.MAX_TEXELS_PER_BLOCK];
 		}
 	}
+
+	// *********************************************************
+	// functions and data pertaining to images and imageblocks
+	// *********************************************************
+
+	/**
+	* @brief Parameter structure for compute_pixel_region_variance().
+	*
+	* This function takes a structure to avoid spilling arguments to the stack
+	* on every function invocation, as there are a lot of parameters.
+	*/
+	public struct pixel_region_variance_args
+	{
+		/** The image to analyze. */
+		public ASTCEncImage img;
+		/** The RGB channel power adjustment. */
+		public float rgb_power;
+		/** The alpha channel power adjustment. */
+		public float alpha_power;
+		/** The channel swizzle pattern. */
+		public ASTCEncSwizzle swz;
+		/** Should the algorithm bother with Z axis processing? */
+		public bool have_z;
+		/** The kernel radius for average and variance. */
+		public int avg_var_kernel_radius;
+		/** The kernel radius for alpha processing. */
+		public int alpha_kernel_radius;
+		/** The size of the working data to process. */
+		public int size_x;
+		public int size_y;
+		public int size_z;
+		/** The position of first src and dst data in the data set. */
+		public int offset_x;
+		public int offset_y;
+		public int offset_z;
+		/** The working memory buffer. */
+		public vfloat4[] work_memory;
+	};
+
+	/**
+	* @brief Parameter structure for compute_averages_and_variances_proc().
+	*/
+	public struct avg_var_args
+	{
+		/** The arguments for the nested variance computation. */
+		public pixel_region_variance_args arg;
+		/** The image dimensions. */
+		public int img_size_x;
+		public int img_size_y;
+		public int img_size_z;
+		/** The maximum working block dimensions. */
+		public int blk_size_xy;
+		public int blk_size_z;
+		/** The working block memory size. */
+		public int work_memory_size;
+	}
 }
