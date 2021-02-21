@@ -79,6 +79,15 @@ namespace ASTCEnc
 			this.m[3] = p[3];
 		}
 
+		public vfloat4(float v0, float v1, float v2, float v3)
+		{
+			this.m = new float[internalSize];
+			this.m[0] = v0;
+			this.m[1] = v1;
+			this.m[2] = v2;
+			this.m[3] = v3;
+		}
+
 		public vfloat4(float a)
 		{
 			this.m = new float[internalSize];

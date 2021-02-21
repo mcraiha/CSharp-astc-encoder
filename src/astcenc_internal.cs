@@ -26,6 +26,36 @@ namespace ASTCEnc
 		QUANT_256 = 20
 	}
 
+	public struct QuantizationAndTransferTable
+	{
+		/** The quantization level used */
+		public QuantMethod method;
+		/** The unscrambled unquantized value. */
+		public float[] unquantized_value_unsc;
+		/** The scrambling order: value[map[i]] == value_unsc[i] */
+		public int[] scramble_map;
+		/** The scrambled unquantized values. */
+		public byte[] unquantized_value;
+		/**
+		* An encoded table of previous-and-next weight values, indexed by the
+		* current unquantized value.
+		*  * bits 7:0 = previous-index, unquantized
+		*  * bits 15:8 = next-index, unquantized
+		*  * bits 23:16 = previous-index, quantized
+		*  * bits 31:24 = next-index, quantized
+		*/
+		public uint[] prev_next_values;
+
+		public QuantizationAndTransferTable(bool unused)
+		{
+			this.method = default;
+			this.unquantized_value_unsc = new float[33];
+			this.scramble_map = new int[32];
+			this.unquantized_value = new byte[32];
+			this.prev_next_values = new uint[65];
+		}
+	}
+
 	public enum EndpointFormats
 	{
 		FMT_LUMINANCE = 0,
@@ -196,7 +226,7 @@ namespace ASTCEnc
 			this.weights_int = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
 			this.weights_flt = new float[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weights_texel = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK, 4];
-			this.texel_weights_float_texel = new float[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.AX_TEXELS_PER_BLOCK, 4];
+			this.texel_weights_float_texel = new float[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK, 4];
 		}
 	}
 
@@ -207,10 +237,20 @@ namespace ASTCEnc
 	{
 		public sbyte decimation_mode;
 		public sbyte quant_mode;
-		public byte is_dual_plane : 1;
-		public byte percentile_hit : 1;
-		public byte percentile_always : 1;
+		public bool is_dual_plane;
+		public bool percentile_hit;
+		public bool percentile_always;
 		public short mode_index;
+
+		public BlockMode(bool unused)
+		{
+			this.decimation_mode = 0;
+			this.quant_mode = 0;
+			this.is_dual_plane = false;
+			this.percentile_hit = false;
+			this.percentile_always = false;
+			this.mode_index = 0;
+		}
 	}
 
 	/**
@@ -220,8 +260,16 @@ namespace ASTCEnc
 	{
 		public sbyte maxprec_1plane;
 		public sbyte maxprec_2planes;
-		public byte percentile_hit : 1;
-		public byte percentile_always : 1;
+		public bool percentile_hit;
+		public bool percentile_always;
+
+		public DecimationMode(bool unused)
+		{
+			this.maxprec_1plane = 0;
+			this.maxprec_2planes = 0;
+			this.percentile_hit = false;
+			this.percentile_always = false;
+		}
 	}
 
 	/**
@@ -319,8 +367,7 @@ namespace ASTCEnc
 		public float[] data_b;
 		public float[] data_a;
 
-		// TODO: Migrate to vfloat4
-		public Float4 origin_texel;
+		public vfloat4 origin_texel;
 		public vfloat4 data_min;
 		public vfloat4 data_max;
 		public bool grayscale;
@@ -337,6 +384,11 @@ namespace ASTCEnc
 			this.data_b = new float[Constants.MAX_TEXELS_PER_BLOCK];
 			this.data_a = new float[Constants.MAX_TEXELS_PER_BLOCK];
 
+			this.origin_texel = new vfloat4();
+			this.data_min = new vfloat4();
+			this.data_max = new vfloat4();
+			this.grayscale = false;
+
 			this.rgb_lns = new byte[Constants.MAX_TEXELS_PER_BLOCK];
 			this.alpha_lns = new byte[Constants.MAX_TEXELS_PER_BLOCK];
 			this.nan_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
@@ -344,6 +396,22 @@ namespace ASTCEnc
 			this.xpos = 0;
 			this.ypos = 0;
 			this.zpos = 0;
+		}
+
+		public vfloat4 Texel(int index)
+		{
+			return new vfloat4(data_r[index],
+		               data_g[index],
+		               data_b[index],
+		               data_a[index]);
+		}
+
+		public vfloat4 Texel3(int index)
+		{
+			return new vfloat4(data_r[index],
+		               data_g[index],
+		               data_b[index],
+		               0.0f);
 		}
 	}
 

@@ -9,15 +9,15 @@ namespace ASTCEnc
 		{
 			// Get the partition descriptor
 			int partition_count = scb.partition_count;
-			const partition_info *pt = get_partition_table(bsd, partition_count);
+			PartitionInfo  pt = get_partition_table(bsd, partition_count);
 			pt += scb.partition_index;
 
 			// Get the quantization table
-			const int packed_index = bsd.block_mode_packed_index[scb.block_mode];
+			int packed_index = bsd.block_mode_packed_index[scb.block_mode];
 			Debug.Assert(packed_index >= 0 && packed_index < bsd.block_mode_count);
 			BlockMode bm = bsd.block_modes[packed_index];
 			int weight_quantization_level = bm.quantization_mode;
-			const quantization_and_transfer_table *qat = &(quant_and_xfer_tables[weight_quantization_level]);
+			QuantizationAndTransferTable qat = &(quant_and_xfer_tables[weight_quantization_level]);
 
 			// Get the decimation table
 			DecimationTable[] ixtab2 = bsd.decimation_tables;
@@ -32,10 +32,10 @@ namespace ASTCEnc
 			int rgb_hdr;
 			int alpha_hdr;
 			int nan_endpoint;
-			int4 endpnt0[4];
-			int4 endpnt1[4];
-			float4 endpnt0f[4];
-			float4 offset[4];
+			vint4[] endpnt0 = new vint4[4];
+			vint4[] endpnt1 = new vint4[4];
+			vfloat4[] endpnt0f = new vfloat4[4];
+			vfloat4[] offset = new vfloat4[4];
 
 			promise(partition_count > 0);
 			promise(weight_count > 0);
@@ -54,7 +54,7 @@ namespace ASTCEnc
 			}
 
 			byte[] uq_pl_weights = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
-			uint8_t* weight_set8 = plane1_weight_set8;
+			byte[] weight_set8 = plane1_weight_set8;
 			int adjustments = 0;
 
 			// For each plane and partition ...
@@ -63,7 +63,7 @@ namespace ASTCEnc
 				for (int pa_idx = 0; pa_idx < partition_count; pa_idx++)
 				{
 					// Compute the endpoint delta for all channels in current plane
-					int4 epd = endpnt1[pa_idx] - endpnt0[pa_idx];
+					vint4 epd = endpnt1[pa_idx] - endpnt0[pa_idx];
 
 					if ((plane_mask & 1) == 1) epd.r = 0;
 					if ((plane_mask & 2) == 1) epd.g = 0;
@@ -103,9 +103,9 @@ namespace ASTCEnc
 					promise(texels_to_evaluate > 0);
 					for (int te_idx = 0; te_idx < texels_to_evaluate; te_idx++)
 					{
-						int texel = it.weight_texel[we_idx][te_idx];
-						const uint8_t *texel_weights = it.texel_weights_texel[we_idx][te_idx];
-						const float *texel_weights_float = it.texel_weights_float_texel[we_idx][te_idx];
+						int texel = it.weight_texel[we_idx, te_idx];
+						const uint8_t *texel_weights = it.texel_weights_texel[we_idx, te_idx];
+						const float *texel_weights_float = it.texel_weights_float_texel[we_idx, te_idx];
 						float twf0 = texel_weights_float[0];
 						float weight_base =
 							((static_cast<float>(uqw) * twf0
@@ -120,19 +120,19 @@ namespace ASTCEnc
 						float plane_up_weight = astc::flt_rd(weight_base + static_cast<float>(uqw_next_dif) * twf0) - plane_weight;
 						float plane_down_weight = astc::flt_rd(weight_base + static_cast<float>(uqw_prev_dif) * twf0) - plane_weight;
 
-						float4 color_offset = offset[partition];
-						float4 color_base   = endpnt0f[partition];
+						vfloat4 color_offset = offset[partition];
+						vfloat4 color_base   = endpnt0f[partition];
 
-						float4 color = color_base + color_offset * plane_weight;
+						vfloat4 color = color_base + color_offset * plane_weight;
 
-						float4 origcolor    = float4(blk->data_r[texel], blk->data_g[texel],
-													blk->data_b[texel], blk->data_a[texel]);
-						float4 error_weight = float4(ewb->texel_weight_r[texel], ewb->texel_weight_g[texel],
-													ewb->texel_weight_b[texel], ewb->texel_weight_a[texel]);
+						vfloat4 origcolor    = new vfloat4(blk.data_r[texel], blk.data_g[texel],
+													blk.data_b[texel], blk.data_a[texel]);
+						vfloat4 error_weight = new vfloat4(ewb.texel_weight_r[texel], ewb.texel_weight_g[texel],
+													ewb.texel_weight_b[texel], ewb.texel_weight_a[texel]);
 
-						float4 colordiff       = color - origcolor;
-						float4 color_up_diff   = colordiff + color_offset * plane_up_weight;
-						float4 color_down_diff = colordiff + color_offset * plane_down_weight;
+						vfloat4 colordiff       = color - origcolor;
+						vfloat4 color_up_diff   = colordiff + color_offset * plane_up_weight;
+						vfloat4 color_down_diff = colordiff + color_offset * plane_down_weight;
 						current_error += dot(colordiff       * colordiff,       error_weight);
 						up_error      += dot(color_up_diff   * color_up_diff,   error_weight);
 						down_error    += dot(color_down_diff * color_down_diff, error_weight);
@@ -931,7 +931,7 @@ namespace ASTCEnc
 						}
 						else
 						{
-							vfloat4 error_weight(ctx.config.v_rgb_base,
+							vfloat4 error_weight = new vfloat4(ctx.config.v_rgb_base,
 												ctx.config.v_rgb_base,
 												ctx.config.v_rgb_base,
 												ctx.config.v_a_base);
@@ -1029,32 +1029,32 @@ namespace ASTCEnc
 			}
 
 			vfloat4 error_weight_sum = vfloat4::zero();
-			int texels_per_block = bsd->texel_count;
+			int texels_per_block = bsd.texel_count;
 			for (int i = 0; i < texels_per_block; i++)
 			{
-				error_weight_sum = error_weight_sum + ewb->error_weights[i];
+				error_weight_sum = error_weight_sum + ewb.error_weights[i];
 
-				float wr = ewb->error_weights[i].lane<0>();
-				float wg = ewb->error_weights[i].lane<1>();
-				float wb = ewb->error_weights[i].lane<2>();
-				float wa = ewb->error_weights[i].lane<3>();
+				float wr = ewb.error_weights[i].lane<0>();
+				float wg = ewb.error_weights[i].lane<1>();
+				float wb = ewb.error_weights[i].lane<2>();
+				float wa = ewb.error_weights[i].lane<3>();
 
-				ewb->texel_weight_r[i] = wr;
-				ewb->texel_weight_g[i] = wg;
-				ewb->texel_weight_b[i] = wb;
-				ewb->texel_weight_a[i] = wa;
+				ewb.texel_weight_r[i] = wr;
+				ewb.texel_weight_g[i] = wg;
+				ewb.texel_weight_b[i] = wb;
+				ewb.texel_weight_a[i] = wa;
 
-				ewb->texel_weight_rg[i] = (wr + wg) * 0.5f;
-				ewb->texel_weight_rb[i] = (wr + wb) * 0.5f;
-				ewb->texel_weight_gb[i] = (wg + wb) * 0.5f;
-				ewb->texel_weight_ra[i] = (wr + wa) * 0.5f;
+				ewb.texel_weight_rg[i] = (wr + wg) * 0.5f;
+				ewb.texel_weight_rb[i] = (wr + wb) * 0.5f;
+				ewb.texel_weight_gb[i] = (wg + wb) * 0.5f;
+				ewb.texel_weight_ra[i] = (wr + wa) * 0.5f;
 
-				ewb->texel_weight_gba[i] = (wg + wb + wa) * 0.333333f;
-				ewb->texel_weight_rba[i] = (wr + wb + wa) * 0.333333f;
-				ewb->texel_weight_rga[i] = (wr + wg + wa) * 0.333333f;
-				ewb->texel_weight_rgb[i] = (wr + wg + wb) * 0.333333f;
+				ewb.texel_weight_gba[i] = (wg + wb + wa) * 0.333333f;
+				ewb.texel_weight_rba[i] = (wr + wb + wa) * 0.333333f;
+				ewb.texel_weight_rga[i] = (wr + wg + wa) * 0.333333f;
+				ewb.texel_weight_rgb[i] = (wr + wg + wb) * 0.333333f;
 
-				ewb->texel_weight[i] = (wr + wg + wb + wa) * 0.25f;
+				ewb.texel_weight[i] = (wr + wg + wb + wa) * 0.25f;
 			}
 
 			return hadd_s(error_weight_sum);
@@ -1088,10 +1088,10 @@ namespace ASTCEnc
 				Debug.Assert(weight >= 0.0f);
 				weight_sum += weight;
 
-				float r = blk->data_r[i];
-				float g = blk->data_g[i];
-				float b = blk->data_b[i];
-				float a = blk->data_a[i];
+				float r = blk.data_r[i];
+				float g = blk.data_g[i];
+				float b = blk.data_b[i];
+				float a = blk.data_a[i];
 
 				float rw = r * weight;
 				rss += rw;
@@ -1146,32 +1146,16 @@ namespace ASTCEnc
 			if (astc::isnan(ga_cov)) ga_cov = 1.0f;
 			if (astc::isnan(ba_cov)) ba_cov = 1.0f;
 
-			float lowest_correlation = Math.Min(fabsf(rg_cov), fabsf(rb_cov));
-			lowest_correlation       = Math.Min(lowest_correlation, fabsf(ra_cov));
-			lowest_correlation       = Math.Min(lowest_correlation, fabsf(gb_cov));
-			lowest_correlation       = Math.Min(lowest_correlation, fabsf(ga_cov));
-			lowest_correlation       = Math.Min(lowest_correlation, fabsf(ba_cov));
-
-			// Diagnostic trace points
-			trace_add_data("min_r", blk->data_min.lane<0>());
-			trace_add_data("max_r", blk->data_max.lane<0>());
-			trace_add_data("min_g", blk->data_min.lane<1>());
-			trace_add_data("max_g", blk->data_max.lane<1>());
-			trace_add_data("min_b", blk->data_min.lane<2>());
-			trace_add_data("max_b", blk->data_max.lane<2>());
-			trace_add_data("min_a", blk->data_min.lane<3>());
-			trace_add_data("max_a", blk->data_max.lane<3>());
-			trace_add_data("cov_rg", fabsf(rg_cov));
-			trace_add_data("cov_rb", fabsf(rb_cov));
-			trace_add_data("cov_ra", fabsf(ra_cov));
-			trace_add_data("cov_gb", fabsf(gb_cov));
-			trace_add_data("cov_ga", fabsf(ga_cov));
-			trace_add_data("cov_ba", fabsf(ba_cov));
+			float lowest_correlation = Math.Min(Math.Abs(rg_cov), Math.Abs(rb_cov));
+			lowest_correlation       = Math.Min(lowest_correlation, Math.Abs(ra_cov));
+			lowest_correlation       = Math.Min(lowest_correlation, Math.Abs(gb_cov));
+			lowest_correlation       = Math.Min(lowest_correlation, Math.Abs(ga_cov));
+			lowest_correlation       = Math.Min(lowest_correlation, Math.Abs(ba_cov));
 
 			return lowest_correlation;
 		}
 
-		void compress_block(astcenc_context ctx, ASTCEncImage input_image, ImageBlock blk, SymbolicCompressedBlock scb, PhysicalCompressedBlock pcb, compress_symbolic_block_buffers tmpbuf)
+		static public void compress_block(astcenc_context ctx, ASTCEncImage input_image, ImageBlock blk, SymbolicCompressedBlock scb, PhysicalCompressedBlock pcb, compress_symbolic_block_buffers tmpbuf)
 		{
 			ASTCEncProfile decode_mode = ctx.config.profile;
 			ErrorWeightBlock ewb = tmpbuf.ewb;
@@ -1380,7 +1364,7 @@ namespace ASTCEnc
 
 		END_OF_TESTS:
 			// Compress to a physical block
-			symbolic_to_physical(*bsd, scb, pcb);
+			symbolic_to_physical(bsd, scb, pcb);
 		}
 	}
 }
