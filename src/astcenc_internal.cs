@@ -78,7 +78,7 @@ namespace ASTCEnc
 
 	public struct SymbolicCompressedBlock
 	{
-		public int error_block;			// 1 marks error block, 0 marks non-error-block.
+		public bool error_block;			// 1 marks error block, 0 marks non-error-block.
 		public int block_mode;				// 0 to 2047. Negative value marks constant-color block (-1: FP16, -2:UINT16)
 		public int partition_count;		// 1 to 4; Zero marks a constant-color block.
 		public int partition_index;		// 0 to 1023
@@ -95,7 +95,7 @@ namespace ASTCEnc
 
 		public SymbolicCompressedBlock(bool unused)
 		{
-			this.error_block = 0;
+			this.error_block = false;
 			this.block_mode = 0;
 			this.partition_count = 0;
 			this.partition_index = 0;
@@ -215,6 +215,12 @@ namespace ASTCEnc
 
 		public DecimationTable(bool unused)
 		{
+			this.texel_count = 0;
+			this.weight_count = 0;
+			this.weight_x = 0;
+			this.weight_y = 0;
+			this.weight_z = 0;
+
 			this.texel_weight_count = new byte[Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weights_float_4t = new float[4, Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weights_4t = new byte[4, Constants.MAX_TEXELS_PER_BLOCK];
@@ -417,7 +423,7 @@ namespace ASTCEnc
 
 	public struct ErrorWeightBlock
 	{
-		public Float4[] error_weights;
+		public vfloat4[] error_weights;
 		public float[] texel_weight;
 		public float[] texel_weight_gba;
 		public float[] texel_weight_rba;
@@ -436,7 +442,7 @@ namespace ASTCEnc
 
 		public ErrorWeightBlock()
 		{
-			this.error_weights = new Float4[Constants.MAX_TEXELS_PER_BLOCK];
+			this.error_weights = new vfloat4[Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weight = new float[Constants.MAX_TEXELS_PER_BLOCK];
 
 			this.texel_weight_gba = new float[Constants.MAX_TEXELS_PER_BLOCK];
@@ -537,10 +543,10 @@ namespace ASTCEnc
 		public vfloat4[] input_variances;
 		public float[] input_alpha_averages;
 
-		compress_symbolic_block_buffers working_buffers;
+		public compress_symbolic_block_buffers working_buffers;
 
-		pixel_region_variance_args arg;
-		avg_var_args ag;
+		public pixel_region_variance_args arg;
+		public avg_var_args ag;
 
 		public float[] deblock_weights;
 

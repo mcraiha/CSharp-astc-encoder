@@ -88,7 +88,7 @@ namespace ASTCEnc
 			float rgb_power = arg.rgb_power;
 			float alpha_power = arg.alpha_power;
 			ASTCEncSwizzle swz = arg.swz;
-			int have_z = arg.have_z;
+			bool have_z = arg.have_z;
 
 			int size_x = arg.size_x;
 			int size_y = arg.size_y;
@@ -491,6 +491,103 @@ namespace ASTCEnc
 					}
 				}
 			}
+		}
+
+		private static void compute_averages_and_variances(astcenc_context ctx, avg_var_args ag) 
+		{
+			pixel_region_variance_args arg = ag.arg;
+			arg.work_memory = new vfloat4[ag.work_memory_size];
+
+			int size_x = ag.img_size_x;
+			int size_y = ag.img_size_y;
+			int size_z = ag.img_size_z;
+
+			int step_xy = ag.blk_size_xy;
+			int step_z = ag.blk_size_z;
+
+			int y_tasks = (size_y + step_xy - 1) / step_xy;
+
+			// All threads run this processing loop until there is no work remaining
+			while (true)
+			{
+				uint count;
+				uint baseVal = ctx.manage_avg_var.get_task_assignment(1, count);
+				if (count != 0)
+				{
+					break;
+				}
+
+				Debug.Assert(count == 1);
+				int z = (baseVal / (y_tasks)) * step_z;
+				int y = (baseVal - (z * y_tasks)) * step_xy;
+
+				arg.size_z = Math.Min(step_z, size_z - z);
+				arg.offset_z = z;
+
+				arg.size_y = Math.Min(step_xy, size_y - y);
+				arg.offset_y = y;
+
+				for (int x = 0; x < size_x; x += step_xy)
+				{
+					arg.size_x = Math.Min(step_xy, size_x - x);
+					arg.offset_x = x;
+					compute_pixel_region_variance(ctx, arg);
+				}
+
+				ctx.manage_avg_var.complete_task_assignment(count);
+			}
+
+			arg.work_memory = null;
+		}
+
+		/* Public function, see header file for detailed documentation */
+		public static uint init_compute_averages_and_variances(ASTCEncImage img, float rgb_power, float alpha_power, int avg_var_kernel_radius, int alpha_kernel_radius, ASTCEncSwizzle swz, pixel_region_variance_args arg, avg_var_args ag) 
+		{
+			int size_x = img.dim_x;
+			int size_y = img.dim_y;
+			int size_z = img.dim_z;
+
+			// Compute maximum block size and from that the working memory buffer size
+			int kernel_radius = Math.Max(avg_var_kernel_radius, alpha_kernel_radius);
+			int kerneldim = 2 * kernel_radius + 1;
+
+			bool have_z = (size_z > 1);
+			int max_blk_size_xy = have_z ? 16 : 32;
+			int max_blk_size_z = Math.Min(size_z, have_z ? 16 : 1);
+
+			int max_padsize_xy = max_blk_size_xy + kerneldim;
+			int max_padsize_z = max_blk_size_z + (have_z ? kerneldim : 0);
+
+			// Perform block-wise averages-and-variances calculations across the image
+			// Initialize fields which are not populated until later
+			arg.size_x = 0;
+			arg.size_y = 0;
+			arg.size_z = 0;
+			arg.offset_x = 0;
+			arg.offset_y = 0;
+			arg.offset_z = 0;
+			arg.work_memory = null;
+
+			arg.img = img;
+			arg.rgb_power = rgb_power;
+			arg.alpha_power = alpha_power;
+			arg.swz = swz;
+			arg.have_z = have_z;
+			arg.avg_var_kernel_radius = avg_var_kernel_radius;
+			arg.alpha_kernel_radius = alpha_kernel_radius;
+
+			ag.arg = arg;
+			ag.img_size_x = size_x;
+			ag.img_size_y = size_y;
+			ag.img_size_z = size_z;
+			ag.blk_size_xy = max_blk_size_xy;
+			ag.blk_size_z = max_blk_size_z;
+			ag.work_memory_size = 2 * max_padsize_xy * max_padsize_xy * max_padsize_z;
+
+			// The parallel task count
+			int z_tasks = (size_z + max_blk_size_z - 1) / max_blk_size_z;
+			int y_tasks = (size_y + max_blk_size_xy - 1) / max_blk_size_xy;
+			return (uint)(z_tasks * y_tasks);
 		}
 	}
 }

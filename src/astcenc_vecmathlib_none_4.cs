@@ -96,6 +96,68 @@ namespace ASTCEnc
 			this.m[2] = a;
 			this.m[3] = a;
 		}
+
+		/**
+		* @brief Get the scalar value of a single lane.
+		*/
+		public float lane(int l)
+		{
+			return this.m[l];
+		}
+
+		/**
+		* @brief Set the scalar value of a single lane.
+		*/
+		public void set_lane(int l, float a)
+		{
+			m[l] = a;
+		}
+
+		public static vfloat4 operator +(vfloat4 a, vfloat4 b)
+		{
+			return new vfloat4(a.m[0] + b.m[0],
+	             a.m[1] + b.m[1],
+	             a.m[2] + b.m[2],
+	             a.m[3] + b.m[3]);
+		}
+
+		public static vfloat4 operator -(vfloat4 a, vfloat4 b)
+		{
+			return new vfloat4(a.m[0] - b.m[0],
+	             a.m[1] - b.m[1],
+	             a.m[2] - b.m[2],
+	             a.m[3] - b.m[3]);
+		}
+
+		public static vfloat4 operator *(vfloat4 a, vfloat4 b)
+		{
+			return new vfloat4(a.m[0] * b.m[0],
+	             a.m[1] * b.m[1],
+	             a.m[2] * b.m[2],
+	             a.m[3] * b.m[3]);
+		}
+
+		/**
+		* @brief Overload: vector by scalar multiplication.
+		*/
+		public static vfloat4 operator*(vfloat4 a, float b)
+		{
+			return new vfloat4(a.m[0] * b,
+						a.m[1] * b,
+						a.m[2] * b,
+						a.m[3] * b);
+		}
+
+		/**
+		* @brief Overload: scalar by vector multiplication.
+		*/
+		public static vfloat4 operator*(float a, vfloat4 b)
+		{
+			return new vfloat4(a * b.m[0],
+						a * b.m[1],
+						a * b.m[2],
+						a * b.m[3]);
+		}
 	}
 
 	// ============================================================================
@@ -199,5 +261,122 @@ namespace ASTCEnc
 		* @brief The vector ...
 		*/
 		private readonly int[] m;
+
+		public static vint4 operator +(vint4 a, vint4 b)
+		{
+			return new vint4(a.m[0] + b.m[0],
+	             a.m[1] + b.m[1],
+	             a.m[2] + b.m[2],
+	             a.m[3] + b.m[3]);
+		}
+
+		public static vint4 operator -(vint4 a, vint4 b)
+		{
+			return new vint4(a.m[0] - b.m[0],
+	             a.m[1] - b.m[1],
+	             a.m[2] - b.m[2],
+	             a.m[3] - b.m[3]);
+		}
+
+		public static vint4 operator *(vint4 a, vint4 b)
+		{
+			return new vint4(a.m[0] * b.m[0],
+	             a.m[1] * b.m[1],
+	             a.m[2] * b.m[2],
+	             a.m[3] * b.m[3]);
+		}
+
+		public static vint4 operator *(vint4 a, int b)
+		{
+			return new vint4(a.m[0] * b,
+	             a.m[1] * b,
+	             a.m[2] * b,
+	             a.m[3] * b);
+		}
+
+		/**
+		* @brief Logical shift right.
+		*/
+		public static vint4 lsr(int s, vint4 a)
+		{
+			return new vint4(a.m[0] >> s,
+						a.m[1] >> s,
+						a.m[2] >> s,
+						a.m[3] >> s);
+		}
+
+		/**
+		* @brief Return the min vector of two vectors.
+		*/
+		public static vint4 min(vint4 a, vint4 b)
+		{
+			return new vint4(a.m[0] < b.m[0] ? a.m[0] : b.m[0],
+						a.m[1] < b.m[1] ? a.m[1] : b.m[1],
+						a.m[2] < b.m[2] ? a.m[2] : b.m[2],
+						a.m[3] < b.m[3] ? a.m[3] : b.m[3]);
+		}
+
+		/**
+		* @brief Return the min vector of two vectors.
+		*/
+		public static vint4 max(vint4 a, vint4 b)
+		{
+			return new vint4(a.m[0] > b.m[0] ? a.m[0] : b.m[0],
+						a.m[1] > b.m[1] ? a.m[1] : b.m[1],
+						a.m[2] > b.m[2] ? a.m[2] : b.m[2],
+						a.m[3] > b.m[3] ? a.m[3] : b.m[3]);
+		}
+
+		/**
+		* @brief Return lanes from @c b if MSB of @c cond is set, else @c a.
+		*/
+		public static vint4 select(vint4 a, vint4 b, vmask4 cond)
+		{
+			return new vint4((cond.m[0] & 0x80000000) == 1 ? b.m[0] : a.m[0],
+						(cond.m[1] & 0x80000000) == 1 ? b.m[1] : a.m[1],
+						(cond.m[2] & 0x80000000) == 1 ? b.m[2] : a.m[2],
+						(cond.m[3] & 0x80000000) == 1 ? b.m[3] : a.m[3]);
+		}
+	}
+
+	// ============================================================================
+	// vmask4 data type
+	// ============================================================================
+
+	/**
+	* @brief Data type for 4-wide control plane masks.
+	*/
+	public struct vmask4
+	{
+		/**
+		* @brief Construct from an existing mask value.
+		*/
+		public vmask4(int[] p)
+		{
+			m = new int[4];
+			m[0] = p[0];
+			m[1] = p[1];
+			m[2] = p[2];
+			m[3] = p[3];
+		}
+
+		/**
+		* @brief Construct from 4 scalar values.
+		*
+		* The value of @c a is stored to lane 0 (LSB) in the SIMD register.
+		*/
+		public vmask4(int a, int b, int c, int d)
+		{
+			m = new int[4];
+			m[0] = a;
+			m[1] = b;
+			m[2] = c;
+			m[3] = d;
+		}
+
+		/**
+		* @brief The vector ...
+		*/
+		public readonly int[] m;
 	}
 }
