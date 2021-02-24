@@ -217,7 +217,7 @@ namespace ASTCEnc
 
 			// Now that we have endpoint colors and weights, we can unpack texel colors
 			int plane2_color_component = is_dual_plane ? scb.plane2_color_component : -1;
-			vmask4 plane2_mask = vint4::lane_id() == vint4(plane2_color_component);
+			vmask4 plane2_mask = vint4.lane_id() == vint4(plane2_color_component);
 
 			for (int i = 0; i < bsd.texel_count; i++)
 			{
@@ -337,7 +337,7 @@ namespace ASTCEnc
 
 			// Now that we have endpoint colors and weights, we can unpack texel colors
 			int plane2_color_component = is_dual_plane ? scb.plane2_color_component : -1;
-			vmask4 plane2_mask = vint4::lane_id() == vint4(plane2_color_component);
+			vmask4 plane2_mask = vint4.lane_id() == vint4(plane2_color_component);
 
 			float summa = 0.0f;
 			for (int i = 0; i < texel_count; i++)

@@ -287,7 +287,7 @@ namespace ASTCEnc
 			}
 
 			// Pad with an extra layer of 0s; this forms the edge of the SAT tables
-			vfloat4 vbz = vfloat4::zero();
+			vfloat4 vbz = vfloat4.zero();
 			for (int z = 0; z < padsize_z; z++)
 			{
 				for (int y = 0; y < padsize_y; y++)

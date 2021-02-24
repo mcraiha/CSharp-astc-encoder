@@ -156,19 +156,43 @@ namespace ASTCEnc
 		public const uint TUNE_MAX_TRIAL_CANDIDATES = 4;
 	}
 
+	public struct PartitionMetrics
+	{
+		public vfloat4 range_sq;
+		public vfloat4 error_weight;
+		public vfloat4 icolor_scale;
+		public vfloat4 color_scale;
+		public vfloat4 avg;
+		public vfloat4 dir;
+	};
+
+	public struct PartitionLines3
+	{
+		public line3 uncor_line;
+		public line3 samec_line;
+
+		public processed_line3 uncor_pline;
+		public processed_line3 samec_pline;
+
+		public float uncor_line_len;
+		public float samec_line_len;
+	}
+
+
 	public struct PartitionInfo
 	{
 		public int partition_count;
 		public byte[] texels_per_partition;
 		public byte[] partition_of_texel;
-		public byte[][] texels_of_partition;
+		public byte[,] texels_of_partition;
 		public ulong[] coverage_bitmaps;
 
-		public PartitionInfo()
+		public PartitionInfo(bool unused)
 		{
+			this.partition_count = 0;
 			this.texels_per_partition = new byte[4];
 			this.partition_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texels_of_partition = new byte[4][Constants.MAX_TEXELS_PER_BLOCK];
+			this.texels_of_partition = new byte[4, Constants.MAX_TEXELS_PER_BLOCK];
 			this.coverage_bitmaps = new ulong[4];
 		}
 	}
@@ -617,5 +641,21 @@ namespace ASTCEnc
 		public int blk_size_z;
 		/** The working block memory size. */
 		public int work_memory_size;
+	}
+
+	public struct EncodingChoiceErrors
+	{
+		// Error of using LDR RGB-scale instead of complete endpoints.
+		public float rgb_scale_error;
+		// Error of using HDR RGB-scale instead of complete endpoints.
+		public float rgb_luma_error;
+		// Error of using luminance instead of RGB.
+		public float luminance_error;
+		// Error of discarding alpha.
+		public float alpha_drop_error;
+		// Validity of using offset encoding.
+		public bool can_offset_encode;
+		// Validity of using blue contraction encoding.
+		public bool can_blue_contract;
 	}
 }

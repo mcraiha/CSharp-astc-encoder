@@ -1,3 +1,5 @@
+using System;
+
 namespace ASTCEnc
 {
 	// ============================================================================
@@ -111,6 +113,74 @@ namespace ASTCEnc
 		public void set_lane(int l, float a)
 		{
 			m[l] = a;
+		}
+
+		/**
+		* @brief Factory that returns a vector of zeros.
+		*/
+		public static vfloat4 zero()
+		{
+			return new vfloat4(0.0f);
+		}
+
+		/**
+		* @brief Return the dot product for the full 4 lanes, returning scalar.
+		*/
+		public static float dot_s(vfloat4 a, vfloat4 b)
+		{
+			return a.m[0] * b.m[0] +
+				a.m[1] * b.m[1] +
+				a.m[2] * b.m[2] +
+				a.m[3] * b.m[3];
+		}
+
+		/**
+		* @brief Return the dot product for the full 4 lanes, returning vector.
+		*/
+		public static vfloat4 dot(vfloat4 a, vfloat4 b)
+		{
+			return new vfloat4(dot_s(a, b));
+		}
+
+		/**
+		* @brief Return the dot product for first 3 lanes, returning scalar.
+		*/
+		public static float dot3_s(vfloat4 a, vfloat4 b)
+		{
+			return a.m[0] * b.m[0] +
+				a.m[1] * b.m[1] +
+				a.m[2] * b.m[2];
+		}
+
+		/**
+		* @brief Return the dot product for first 3 lanes, returning vector.
+		*/
+		public static vfloat4 dot3(vfloat4 a, vfloat4 b)
+		{
+			float d3 = dot3_s(a, b);
+			return new vfloat4(d3, d3, d3, 0.0f);
+		}
+
+		/**
+		* @brief Return lanes from @c b if MSB of @c cond is set, else @c a.
+		*/
+		public static vfloat4 select(vfloat4 a, vfloat4 b, vmask4 cond)
+		{
+			return new vfloat4((cond.m[0] & 0x80000000) == 1 ? b.m[0] : a.m[0],
+						(cond.m[1] & 0x80000000) == 1 ? b.m[1] : a.m[1],
+						(cond.m[2] & 0x80000000) == 1 ? b.m[2] : a.m[2],
+						(cond.m[3] & 0x80000000) == 1 ? b.m[3] : a.m[3]);
+		}
+
+		/**
+		* @brief Return the absolute value of the float vector.
+		*/
+		public static vfloat4 abs(vfloat4 a)
+		{
+			return new vfloat4(Math.Abs(a.m[0]),
+						Math.Abs(a.m[1]),
+						Math.Abs(a.m[2]),
+						Math.Abs(a.m[3]));
 		}
 
 		public static vfloat4 operator +(vfloat4 a, vfloat4 b)
@@ -292,6 +362,28 @@ namespace ASTCEnc
 	             a.m[1] * b,
 	             a.m[2] * b,
 	             a.m[3] * b);
+		}
+
+		/**
+		* @brief Overload: vector by vector equality.
+		*/
+		public static vmask4 operator==(vint4 a, vint4 b)
+		{
+			return new vmask4((a.m[0] == b.m[0]) ? 1 : 0,
+						(a.m[1] == b.m[1]) ? 1 : 0,
+						(a.m[2] == b.m[2]) ? 1 : 0,
+						(a.m[3] == b.m[3]) ? 1 : 0);
+		}
+
+		/**
+		* @brief Overload: vector by vector inequality.
+		*/
+		public static  vmask4 operator!=(vint4 a, vint4 b)
+		{
+			return new vmask4((a.m[0] != b.m[0]) ? 1 : 0,
+						(a.m[1] != b.m[1]) ? 1 : 0,
+						(a.m[2] != b.m[2]) ? 1 : 0,
+						(a.m[3] != b.m[3]) ? 1 : 0);
 		}
 
 		/**

@@ -562,7 +562,7 @@ namespace ASTCEnc
 			}
 
 			vfloat4 err_max = new vfloat4(1e30f);
-			vmask4 err_mask = vint4::lane_id() == vint4(separate_component);
+			vmask4 err_mask = vint4.lane_id() == vint4(separate_component);
 
 			// Set the separate component to max error in ep1
 			min_ep1 = select(min_ep1, err_max, err_mask);
@@ -1028,7 +1028,7 @@ namespace ASTCEnc
 				}
 			}
 
-			vfloat4 error_weight_sum = vfloat4::zero();
+			vfloat4 error_weight_sum = vfloat4.zero();
 			int texels_per_block = bsd.texel_count;
 			for (int i = 0; i < texels_per_block; i++)
 			{
