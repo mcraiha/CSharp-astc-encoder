@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ASTCEnc
@@ -198,14 +199,7 @@ namespace ASTCEnc
 			0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_6x5 =
-		{
-			6, 5,
-			 new ushort[] { 165, 145 },
-			 new ushort[] { 388, 405 },
-			 new ushort[] { 0, 156 },
-			{ percentile_arr_6x5_0, percentile_arr_6x5_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_6x5 = new packed_percentile_table(6, 5, new ushort[] { 165, 145 }, new ushort[] { 388, 405 }, new ushort[] { 0, 156 }, percentile_arr_6x5_0, percentile_arr_6x5_1 );
 
 		public static readonly ushort[] percentile_arr_6x6_0 = new ushort[206]
 		{
@@ -262,14 +256,7 @@ namespace ASTCEnc
 			0x073E,0x076F,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_6x6 =
-		{
-			6, 6,
-			 new ushort[] { 206, 164 },
-			 new ushort[] { 769, 644 },
-			 new ushort[] { 0, 256 },
-			{ percentile_arr_6x6_0, percentile_arr_6x6_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_6x6 = new packed_percentile_table(6, 6, new ushort[] { 206, 164 }, new ushort[] { 769, 644 }, new ushort[] { 0, 256 }, percentile_arr_6x6_0, percentile_arr_6x6_1);
 
 		public static readonly ushort[] percentile_arr_8x5_0 = new ushort[226] 
 		{
@@ -329,14 +316,7 @@ namespace ASTCEnc
 			0x0683,0x0702,0x073E,0x076F,0x079E,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_8x5 =
-		{
-			8, 5,
-			 new ushort[] { 226, 167 },
-			 new ushort[] { 763, 517 },
-			 new ushort[] { 0, 178 },
-			{ percentile_arr_8x5_0, percentile_arr_8x5_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_8x5 = new packed_percentile_table(8, 5, new ushort[] { 226, 167 }, new ushort[] { 763, 517 }, new ushort[] { 0, 178 },  percentile_arr_8x5_0, percentile_arr_8x5_1);
 
 		public static readonly ushort[] percentile_arr_8x6_0 = new ushort[273]
 		{
@@ -405,14 +385,7 @@ namespace ASTCEnc
 			0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_8x6 =
-		{
-			8, 6,
-			 new ushort[] { 273, 186 },
-			 new ushort[] { 880, 300 },
-			 new ushort[] { 0, 64 },
-			{ percentile_arr_8x6_0, percentile_arr_8x6_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_8x6 = new packed_percentile_table(8, 6, new ushort[] { 273, 186 }, new ushort[] { 880, 300 }, new ushort[] { 0, 64 }, percentile_arr_8x6_0, percentile_arr_8x6_1);
 
 		public static readonly ushort[] percentile_arr_8x8_0 = new ushort[347] 
 		{
@@ -492,14 +465,7 @@ namespace ASTCEnc
 			0x068D,0x0702,0x073E,0x076F,0x0781,0x079E,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_8x8 =
-		{
-			8, 8,
-			 new ushort[] { 347, 208 },
-			 new ushort[] { 1144, 267 },
-			 new ushort[] { 0, 38 },
-			{ percentile_arr_8x8_0, percentile_arr_8x8_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_8x8 = new packed_percentile_table(8, 8, new ushort[] { 347, 208 }, new ushort[] { 1144, 267 }, new ushort[] { 0, 38 }, percentile_arr_8x8_0, percentile_arr_8x8_1);
 
 		public static readonly ushort[] percentile_arr_10x5_0 = new ushort[274]
 		{
@@ -567,14 +533,7 @@ namespace ASTCEnc
 			0x073E,0x076F,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_10x5 =
-		{
-			10, 5,
-			 new ushort[] { 274, 180 },
-			 new ushort[] { 954, 324 },
-			 new ushort[] { 0, 79 },
-			{ percentile_arr_10x5_0, percentile_arr_10x5_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_10x5 = new packed_percentile_table(10, 5, new ushort[] { 274, 180 }, new ushort[] { 954, 324 }, new ushort[] { 0, 79 }, percentile_arr_10x5_0, percentile_arr_10x5_1);
 
 		public static readonly ushort[] percentile_arr_10x6_0 = new ushort[325]
 		{
@@ -650,14 +609,7 @@ namespace ASTCEnc
 			0x0683,0x0702,0x070D,0x071E,0x076F,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_10x6 =
-		{
-			10, 6,
-			 new ushort[] { 325, 199 },
-			 new ushort[] { 922, 381 },
-			 new ushort[] { 0, 78 },
-			{ percentile_arr_10x6_0, percentile_arr_10x6_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_10x6 = new packed_percentile_table(10, 6, new ushort[] { 325, 199 }, new ushort[] { 922, 381 }, new ushort[] { 0, 78 }, percentile_arr_10x6_0, percentile_arr_10x6_1);
 
 		public static readonly ushort[] percentile_arr_10x8_0 = new ushort[400]
 		{
@@ -745,14 +697,7 @@ namespace ASTCEnc
 			0x0702,0x071E,0x076F,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_10x8 =
-		{
-			10, 8,
-			 new ushort[] { 400, 221 },
-			 new ushort[] { 1119, 376 },
-			 new ushort[] { 0, 52 },
-			{ percentile_arr_10x8_0, percentile_arr_10x8_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_10x8 =new packed_percentile_table(10, 8, new ushort[] { 400, 221 }, new ushort[] { 1119, 376 },new ushort[] { 0, 52 }, percentile_arr_10x8_0, percentile_arr_10x8_1);
 
 		public static readonly ushort[] percentile_arr_10x10_0 = new ushort[453]
 		{
@@ -849,14 +794,7 @@ namespace ASTCEnc
 			0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_10x10 =
-		{
-			10, 10,
-			 new ushort[] { 453, 234 },
-			 new ushort[] { 1095, 472 },
-			 new ushort[] { 0, 70 },
-			{ percentile_arr_10x10_0, percentile_arr_10x10_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_10x10 = new packed_percentile_table(10, 10, new ushort[] { 453, 234 }, new ushort[] { 1095, 472 }, new ushort[] { 0, 70 }, percentile_arr_10x10_0, percentile_arr_10x10_1);
 
 		public static readonly ushort[] percentile_arr_12x10_0 = new ushort[491]
 		{
@@ -958,14 +896,7 @@ namespace ASTCEnc
 			0x070E,0x071D,0x075D,0x076F,0x078E,0x079E,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_12x10 =
-		{
-			12, 10,
-			 new ushort[] { 491, 240 },
-			 new ushort[] { 1099, 341 },
-			 new ushort[] { 0, 23 },
-			{ percentile_arr_12x10_0, percentile_arr_12x10_1 }
-		};
+		public static readonly packed_percentile_table block_pcd_12x10 = new packed_percentile_table(12, 10, new ushort[] { 491, 240 }, new ushort[] { 1099, 341 }, new ushort[] { 0, 23 }, percentile_arr_12x10_0, percentile_arr_12x10_1);
 
 		public static readonly ushort[] percentile_arr_12x12_0 = new ushort[529] 
 		{
@@ -1073,14 +1004,7 @@ namespace ASTCEnc
 			0x072F,0x076F,0x078D,0x078E,0x07BF,0x07CE
 		};
 
-		public static readonly packed_percentile_table block_pcd_12x12 = new packed_percentile_table
-		{
-			12, 12,
-			 new ushort[] { 529, 246 },
-			 new ushort[] { 1435, 335 },
-			 new ushort[] { 0, 22 },
-			{ percentile_arr_12x12_0, percentile_arr_12x12_1 }
-		}
+		public static readonly packed_percentile_table block_pcd_12x12 = new packed_percentile_table(12, 12, new ushort[] { 529, 246 }, new ushort[] { 1435, 335 }, new ushort[] { 0, 22 }, percentile_arr_12x12_0, percentile_arr_12x12_1 );
 
 		/**
 		* @brief Fetch the packed percentile table for the given 2D block size.
@@ -1112,7 +1036,7 @@ namespace ASTCEnc
 			}
 
 			// Should never hit this with a valid 2D block size
-			return null;
+			throw new NotImplementedException("Should not happen");
 		}
 
 		/* Public function, see header file for detailed documentation */
@@ -1149,7 +1073,7 @@ namespace ASTCEnc
 		}
 
 		/* Public function, see header file for detailed documentation */
-		public static int is_legal_2d_block_size(int xdim, int ydim) 
+		public static bool is_legal_2d_block_size(int xdim, int ydim) 
 		{
 			int idx = (xdim << 8) | ydim;
 			switch (idx)
@@ -1168,14 +1092,14 @@ namespace ASTCEnc
 				case 0x0A0A:
 				case 0x0C0A:
 				case 0x0C0C:
-					return 1;
+					return true;
 			}
 
-			return 0;
+			return false;
 		}
 
 		/* Public function, see header file for detailed documentation */
-		public static int is_legal_3d_block_size(int xdim, int ydim, int zdim) 
+		public static bool is_legal_3d_block_size(int xdim, int ydim, int zdim) 
 		{
 			int idx = (xdim << 16) | (ydim << 8) | zdim;
 			switch (idx)
@@ -1190,9 +1114,9 @@ namespace ASTCEnc
 				case 0x060505:
 				case 0x060605:
 				case 0x060606:
-					return 1;
+					return true;
 				default:
-					return 0;
+					return false;
 			}
 		}
 	}
