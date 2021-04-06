@@ -176,7 +176,7 @@ namespace ASTCEnc
 
 							if (!are_powers_1)
 							{
-								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
+								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
 								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
 								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
 								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
@@ -222,7 +222,7 @@ namespace ASTCEnc
 							if (!are_powers_1)
 							{
 								// TODO: Vectorize this ...
-								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
+								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
 								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
 								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
 								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
@@ -273,7 +273,7 @@ namespace ASTCEnc
 
 							if (!are_powers_1)
 							{
-								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
+								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
 								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
 								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
 								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));

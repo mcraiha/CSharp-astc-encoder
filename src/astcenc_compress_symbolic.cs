@@ -108,17 +108,17 @@ namespace ASTCEnc
 						const float *texel_weights_float = it.texel_weights_float_texel[we_idx, te_idx];
 						float twf0 = texel_weights_float[0];
 						float weight_base =
-							((static_cast<float>(uqw) * twf0
-							+ static_cast<float>(uq_pl_weights[texel_weights[1]])  * texel_weights_float[1])
-							+ (static_cast<float>(uq_pl_weights[texel_weights[2]]) * texel_weights_float[2]
-							+ static_cast<float>(uq_pl_weights[texel_weights[3]]) * texel_weights_float[3]));
+							((uqw * twf0
+							+ uq_pl_weights[texel_weights[1]]  * texel_weights_float[1])
+							+ (uq_pl_weights[texel_weights[2]] * texel_weights_float[2]
+							+ uq_pl_weights[texel_weights[3]] * texel_weights_float[3]));
 
 						int partition = pt.partition_of_texel[texel];
 
 						weight_base = weight_base + 0.5f;
 						float plane_weight = astc::flt_rd(weight_base);
-						float plane_up_weight = astc::flt_rd(weight_base + static_cast<float>(uqw_next_dif) * twf0) - plane_weight;
-						float plane_down_weight = astc::flt_rd(weight_base + static_cast<float>(uqw_prev_dif) * twf0) - plane_weight;
+						float plane_up_weight = astc::flt_rd(weight_base + uqw_next_dif * twf0) - plane_weight;
+						float plane_down_weight = astc::flt_rd(weight_base + uqw_prev_dif * twf0) - plane_weight;
 
 						vfloat4 color_offset = offset[partition];
 						vfloat4 color_base   = endpnt0f[partition];
@@ -133,9 +133,9 @@ namespace ASTCEnc
 						vfloat4 colordiff       = color - origcolor;
 						vfloat4 color_up_diff   = colordiff + color_offset * plane_up_weight;
 						vfloat4 color_down_diff = colordiff + color_offset * plane_down_weight;
-						current_error += dot(colordiff       * colordiff,       error_weight);
-						up_error      += dot(color_up_diff   * color_up_diff,   error_weight);
-						down_error    += dot(color_down_diff * color_down_diff, error_weight);
+						current_error += vfloat4.dot(colordiff       * colordiff,       error_weight);
+						up_error      += vfloat4.dot(color_up_diff   * color_up_diff,   error_weight);
+						down_error    += vfloat4.dot(color_down_diff * color_down_diff, error_weight);
 					}
 
 					// Check if the prev or next error is better, and if so use it
@@ -421,7 +421,7 @@ namespace ASTCEnc
 
 						float errorval = compute_symbolic_block_difference(decode_mode, bsd, &workscb, blk, ewb);
 						trace_add_data("error_prerealign", errorval);
-						best_errorval_in_mode = astc::min(errorval, best_errorval_in_mode);
+						best_errorval_in_mode = Math.Min(errorval, best_errorval_in_mode);
 
 						// Average refinement improvement is 3.5% per iteration
 						// (allow 5%), but the first iteration can help more so we give
@@ -429,7 +429,7 @@ namespace ASTCEnc
 						// heuristic to skip blocks that are unlikely to catch up with
 						// the best block we have already.
 						int iters_remaining = max_refinement_iters - l;
-						float threshold = (0.05f * static_cast<float>(iters_remaining)) + 1.1f;
+						float threshold = (0.05f * iters_remaining) + 1.1f;
 						if (errorval > (threshold * best_errorval_in_scb))
 						{
 							break;
@@ -467,7 +467,7 @@ namespace ASTCEnc
 					// blocks that are unlikely to catch up with the best block we
 					// have already. Assume a 5% per step to give benefit of the doubt
 					int iters_remaining = max_refinement_iters - 1 - l;
-					float threshold = (0.05f * static_cast<float>(iters_remaining)) + 1.0f;
+					float threshold = (0.05f * iters_remaining) + 1.0f;
 					if (errorval > (threshold * best_errorval_in_scb))
 					{
 						break;
@@ -802,7 +802,7 @@ namespace ASTCEnc
 						// heuristic to skip blocks that are unlikely to catch up with
 						// the best block we have already.
 						int iters_remaining = max_refinement_iters - l;
-						float threshold = (0.05f * static_cast<float>(iters_remaining)) + 1.1f;
+						float threshold = (0.05f * iters_remaining) + 1.1f;
 						if (errorval > (threshold * best_errorval_in_scb))
 						{
 							break;
@@ -841,7 +841,7 @@ namespace ASTCEnc
 					// blocks that are unlikely to catch up with the best block we
 					// have already. Assume a 5% per step to give benefit of the doubt
 					int iters_remaining = max_refinement_iters - 1 - l;
-					float threshold = (0.05f * static_cast<float>(iters_remaining)) + 1.0f;
+					float threshold = (0.05f * iters_remaining) + 1.0f;
 					if (errorval > (threshold * best_errorval_in_scb))
 					{
 						break;
@@ -875,9 +875,9 @@ namespace ASTCEnc
 			uint ydim = ctx.config.block_y;
 			uint zdim = ctx.config.block_z;
 
-			float centerpos_x = static_cast<float>(xdim - 1) * 0.5f;
-			float centerpos_y = static_cast<float>(ydim - 1) * 0.5f;
-			float centerpos_z = static_cast<float>(zdim - 1) * 0.5f;
+			float centerpos_x = (xdim - 1) * 0.5f;
+			float centerpos_y = (ydim - 1) * 0.5f;
+			float centerpos_z = (zdim - 1) * 0.5f;
 			float[] bef = ctx.deblock_weights;
 
 			for (uint z = 0; z < zdim; z++)
@@ -886,12 +886,12 @@ namespace ASTCEnc
 				{
 					for (uint x = 0; x < xdim; x++)
 					{
-						float xdif = (static_cast<float>(x) - centerpos_x) / static_cast<float>(xdim);
-						float ydif = (static_cast<float>(y) - centerpos_y) / static_cast<float>(ydim);
-						float zdif = (static_cast<float>(z) - centerpos_z) / static_cast<float>(zdim);
+						float xdif = (x - centerpos_x) / xdim;
+						float ydif = (y - centerpos_y) / ydim;
+						float zdif = (z - centerpos_z) / zdim;
 
 						float wdif = 0.36f;
-						float dist = astc::sqrt(xdif * xdif + ydif * ydif + zdif * zdif + wdif * wdif);
+						float dist = Math.Sqrt(xdif * xdif + ydif * ydif + zdif * zdif + wdif * wdif);
 						*bef = powf(dist, ctx.config.b_deblock_weight);
 						bef++;
 					}
@@ -952,16 +952,16 @@ namespace ASTCEnc
 								float fvar = hadd_rgb_s(variance) * (1.0f / 3.0f);
 
 								float mixing = ctx.config.v_rgba_mean_stdev_mix;
-								avg.set_lane<0>(favg * mixing + avg.lane<0>() * (1.0f - mixing));
+								avg.set_lane<0>(favg * mixing + avg.lane(0) * (1.0f - mixing));
 								avg.set_lane<1>(favg * mixing + avg.lane(1) * (1.0f - mixing));
 								avg.set_lane<2>(favg * mixing + avg.lane(2) * (1.0f - mixing));
 
-								variance.set_lane<0>(fvar * mixing + variance.lane<0>() * (1.0f - mixing));
+								variance.set_lane<0>(fvar * mixing + variance.lane(0) * (1.0f - mixing));
 								variance.set_lane<1>(fvar * mixing + variance.lane(1) * (1.0f - mixing));
 								variance.set_lane<2>(fvar * mixing + variance.lane(2) * (1.0f - mixing));
 
 								// TODO: Vectorize this ...
-								vfloat4 stdev = new vfloat4(astc::sqrt(Math.Max(variance.lane<0>(), 0.0f)),
+								vfloat4 stdev = new vfloat4(astc::sqrt(Math.Max(variance.lane(0), 0.0f)),
 														astc::sqrt(Math.Max(variance.lane(1), 0.0f)),
 														astc::sqrt(Math.Max(variance.lane(2), 0.0f)),
 														astc::sqrt(Math.Max(variance.lane(3), 0.0f)));
@@ -985,7 +985,7 @@ namespace ASTCEnc
 								float denom = 1.0f - xN * xN - yN * yN;
 								denom = Math.Max(denom, 0.1f);
 								denom = 1.0f / denom;
-								error_weight.set_lane<0>(error_weight.lane<0>() * (1.0f + xN * xN * denom));
+								error_weight.set_lane<0>(error_weight.lane(0) * (1.0f + xN * xN * denom));
 								error_weight.set_lane<3>(error_weight.lane(3) * (1.0f + yN * yN * denom));
 							}
 
@@ -1004,7 +1004,7 @@ namespace ASTCEnc
 								alpha_scale = Math.Max(alpha_scale, 0.0001f);
 
 								alpha_scale *= alpha_scale;
-								error_weight.set_lane<0>(error_weight.lane<0>() * alpha_scale);
+								error_weight.set_lane<0>(error_weight.lane(0) * alpha_scale);
 								error_weight.set_lane<1>(error_weight.lane(1) * alpha_scale);
 								error_weight.set_lane<2>(error_weight.lane(2) * alpha_scale);
 							}
@@ -1034,7 +1034,7 @@ namespace ASTCEnc
 			{
 				error_weight_sum = error_weight_sum + ewb.error_weights[i];
 
-				float wr = ewb.error_weights[i].lane<0>();
+				float wr = ewb.error_weights[i].lane(0);
 				float wg = ewb.error_weights[i].lane(1);
 				float wb = ewb.error_weights[i].lane(2);
 				float wa = ewb.error_weights[i].lane(3);

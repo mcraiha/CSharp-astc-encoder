@@ -446,11 +446,11 @@ namespace ASTCEnc
 		{
 			float scale = 1.0f / 257.0f;
 
-			float r0 = ASTCMath.clamp255f(color0.lane<0>() * scale);
+			float r0 = ASTCMath.clamp255f(color0.lane(0) * scale);
 			float g0 = ASTCMath.clamp255f(color0.lane(1) * scale);
 			float b0 = ASTCMath.clamp255f(color0.lane(2) * scale);
 
-			float r1 = ASTCMath.clamp255f(color1.lane<0>() * scale);
+			float r1 = ASTCMath.clamp255f(color1.lane(0) * scale);
 			float g1 = ASTCMath.clamp255f(color1.lane(1) * scale);
 			float b1 = ASTCMath.clamp255f(color1.lane(2) * scale);
 
@@ -510,11 +510,11 @@ namespace ASTCEnc
 		{
 			float scale = 1.0f / 257.0f;
 
-			float r0 = color0.lane<0>() * scale;
+			float r0 = color0.lane(0) * scale;
 			float g0 = color0.lane(1) * scale;
 			float b0 = color0.lane(2) * scale;
 
-			float r1 = color1.lane<0>() * scale;
+			float r1 = color1.lane(0) * scale;
 			float g1 = color1.lane(1) * scale;
 			float b1 = color1.lane(2) * scale;
 
@@ -590,11 +590,11 @@ namespace ASTCEnc
 		{
 			float scale = 1.0f / 257.0f;
 
-			float r0 = ASTCMath.clamp255f(color0.lane<0>() * scale);
+			float r0 = ASTCMath.clamp255f(color0.lane(0) * scale);
 			float g0 = ASTCMath.clamp255f(color0.lane(1) * scale);
 			float b0 = ASTCMath.clamp255f(color0.lane(2) * scale);
 
-			float r1 = ASTCMath.clamp255f(color1.lane<0>() * scale);
+			float r1 = ASTCMath.clamp255f(color1.lane(0) * scale);
 			float g1 = ASTCMath.clamp255f(color1.lane(1) * scale);
 			float b1 = ASTCMath.clamp255f(color1.lane(2) * scale);
 
@@ -719,11 +719,11 @@ namespace ASTCEnc
 			// Note: Switch around endpoint colors already at start
 			float scale = 1.0f / 257.0f;
 
-			float r1 = color0.lane<0>() * scale;
+			float r1 = color0.lane(0) * scale;
 			float g1 = color0.lane(1) * scale;
 			float b1 = color0.lane(2) * scale;
 
-			float r0 = color1.lane<0>() * scale;
+			float r0 = color1.lane(0) * scale;
 			float g0 = color1.lane(1) * scale;
 			float b0 = color1.lane(2) * scale;
 
@@ -1011,7 +1011,7 @@ namespace ASTCEnc
 		{
 			float scale = 1.0f / 257.0f;
 
-			float r = ASTCMath.clamp255f(rgbs_color.lane<0>() * scale);
+			float r = ASTCMath.clamp255f(rgbs_color.lane(0) * scale);
 			float g = ASTCMath.clamp255f(rgbs_color.lane(1) * scale);
 			float b = ASTCMath.clamp255f(rgbs_color.lane(2) * scale);
 
@@ -1198,7 +1198,7 @@ namespace ASTCEnc
 		/* HDR color encoding, take #3 */
 		static void quantize_hdr_rgbo3(vfloat4 color, ref int[] output, int quant_level) 
 		{
-			color.set_lane<0>(color.lane<0>() + color.lane(3));
+			color.set_lane<0>(color.lane(0) + color.lane(3));
 			color.set_lane<1>(color.lane(1) + color.lane(3));
 			color.set_lane<2>(color.lane(2) + color.lane(3));
 
@@ -1206,7 +1206,7 @@ namespace ASTCEnc
 
 			vfloat4 color_bak = color;
 			int majcomp;
-			if (color.lane<0>() > color.lane(1) && color.lane<0>() > color.lane(2))
+			if (color.lane(0) > color.lane(1) && color.lane(0) > color.lane(2))
 				majcomp = 0;			// red is largest component
 			else if (color.lane(1) > color.lane(2))
 				majcomp = 1;			// green is largest component
@@ -1217,10 +1217,10 @@ namespace ASTCEnc
 			switch (majcomp)
 			{
 			case 1:
-				color = new vfloat4(color.lane(1), color.lane<0>(), color.lane(2), color.lane(3));
+				color = new vfloat4(color.lane(1), color.lane(0), color.lane(2), color.lane(3));
 				break;
 			case 2:
-				color = new vfloat4(color.lane(2), color.lane(1), color.lane<0>(), color.lane(3));
+				color = new vfloat4(color.lane(2), color.lane(1), color.lane(0), color.lane(3));
 				break;
 			default:
 				break;
@@ -1258,9 +1258,9 @@ namespace ASTCEnc
 				1.0f / 256.0f,
 			};
 
-			float r_base = color.lane<0>();
-			float g_base = color.lane<0>() - color.lane(1) ;
-			float b_base = color.lane<0>() - color.lane(2) ;
+			float r_base = color.lane(0);
+			float g_base = color.lane(0) - color.lane(1) ;
+			float b_base = color.lane(0) - color.lane(2) ;
 			float s_base = color.lane(3) ;
 
 			for (int mode = 0; mode < 5; mode++)
@@ -1396,15 +1396,15 @@ namespace ASTCEnc
 				g_intval = (g_intval & ~0x1f) | (g_uquantval & 0x1f);
 				b_intval = (b_intval & ~0x1f) | (b_uquantval & 0x1f);
 
-				g_fval = static_cast<float>(g_intval) * mode_rscale;
-				b_fval = static_cast<float>(b_intval) * mode_rscale;
+				g_fval = g_intval * mode_rscale;
+				b_fval = b_intval * mode_rscale;
 
 				// finally, recompute the scale value, based on the errors
 				// introduced to red, green and blue.
 
 				// If the error is positive, then the R,G,B errors combined have raised the color
 				// value overall; as such, the scale value needs to be increased.
-				float rgb_errorsum = (r_fval - color.lane<0>() ) + (r_fval - g_fval - color.lane(1) ) + (r_fval - b_fval - color.lane(2) );
+				float rgb_errorsum = (r_fval - color.lane(0) ) + (r_fval - g_fval - color.lane(1) ) + (r_fval - b_fval - color.lane(2) );
 
 				float s_fval = s_base + rgb_errorsum * (1.0f / 3.0f);
 				s_fval = ASTCMath.clamp(s_fval, 0.0f, 1e9f);
@@ -1472,7 +1472,7 @@ namespace ASTCEnc
 			// failed to encode any of the modes above? In that case,
 			// encode using mode #5.
 			float[] vals = new float[4];
-			vals[0] = color_bak.lane<0>();
+			vals[0] = color_bak.lane(0);
 			vals[1] = color_bak.lane(1);
 			vals[2] = color_bak.lane(2);
 			vals[3] = color_bak.lane(3);
@@ -1484,7 +1484,7 @@ namespace ASTCEnc
 			{
 				vals[i] = ASTCMath.clamp(vals[i], 0.0f, 65020.0f);
 				ivals[i] = ASTCMath.flt2int_rtn(vals[i] * (1.0f / 512.0f));
-				cvals[i] = static_cast<float>(ivals[i]) * 512.0f;
+				cvals[i] = ivals[i] * 512.0f;
 			}
 
 			float rgb_errorsum = (cvals[0] - vals[0]) + (cvals[1] - vals[1]) + (cvals[2] - vals[2]);
@@ -1518,7 +1518,7 @@ namespace ASTCEnc
 			vfloat4 color1_bak = color1;
 
 			int majcomp;
-			if (color1.lane<0>() > color1.lane(1) && color1.lane<0>() > color1.lane(2))
+			if (color1.lane(0) > color1.lane(1) && color1.lane(0) > color1.lane(2))
 			{
 				majcomp = 0;			// red is largest
 			}
@@ -1535,23 +1535,23 @@ namespace ASTCEnc
 			switch (majcomp)
 			{
 			case 1:					// red-green swap
-				color0 = new vfloat4(color0.lane(1), color0.lane<0>(), color0.lane(2), color0.lane(3));
-				color1 = new vfloat4(color1.lane(1), color1.lane<0>(), color1.lane(2), color1.lane(3));
+				color0 = new vfloat4(color0.lane(1), color0.lane(0), color0.lane(2), color0.lane(3));
+				color1 = new vfloat4(color1.lane(1), color1.lane(0), color1.lane(2), color1.lane(3));
 				break;
 			case 2:					// red-blue swap
-				color0 = new vfloat4(color0.lane(2), color0.lane(1), color0.lane<0>(), color0.lane(3));
-				color1 = new vfloat4(color1.lane(2), color1.lane(1), color1.lane<0>(), color1.lane(3));
+				color0 = new vfloat4(color0.lane(2), color0.lane(1), color0.lane(0), color0.lane(3));
+				color1 = new vfloat4(color1.lane(2), color1.lane(1), color1.lane(0), color1.lane(3));
 				break;
 			default:
 				break;
 			}
 
-			float a_base = color1.lane<0>();
+			float a_base = color1.lane(0);
 			a_base = ASTCMath.clamp(a_base, 0.0f, 65535.0f);
 
 			float b0_base = a_base - color1.lane(1);
 			float b1_base = a_base - color1.lane(2);
-			float c_base = a_base - color0.lane<0>();
+			float c_base = a_base - color0.lane(0);
 			float d0_base = a_base - b0_base - c_base - color0.lane(1);
 			float d1_base = a_base - b1_base - c_base - color0.lane(2);
 
@@ -1632,10 +1632,10 @@ namespace ASTCEnc
 				int a_quantval = color_quant_tables[quant_level, a_lowbits];
 				int a_uquantval = ColorUnquantize.color_unquant_tables[quant_level][a_quantval];
 				a_intval = (a_intval & ~0xFF) | a_uquantval;
-				float a_fval = static_cast<float>(a_intval) * mode_rscale;
+				float a_fval = a_intval * mode_rscale;
 
 				// next, recompute C, then quantize and unquantize it
-				float c_fval = a_fval - color0.lane<0>();
+				float c_fval = a_fval - color0.lane(0);
 				c_fval = ASTCMath.clamp(c_fval, 0.0f, 65535.0f);
 
 				int c_intval = ASTCMath.flt2int_rtn(c_fval * mode_scale);
@@ -1654,7 +1654,7 @@ namespace ASTCEnc
 				int c_uquantval = 0;
 				quantize_and_unquantize_retain_top_two_bits(quant_level, c_lowbits, ref c_quantval, ref c_uquantval);
 				c_intval = (c_intval & ~0x3F) | (c_uquantval & 0x3F);
-				c_fval = static_cast<float>(c_intval) * mode_rscale;
+				c_fval = c_intval * mode_rscale;
 
 				// next, recompute B0 and B1, then quantize and unquantize them
 				float b0_fval = a_fval - color1.lane(1);
@@ -1726,8 +1726,8 @@ namespace ASTCEnc
 
 				b0_intval = (b0_intval & ~0x3f) | (b0_uquantval & 0x3f);
 				b1_intval = (b1_intval & ~0x3f) | (b1_uquantval & 0x3f);
-				b0_fval = static_cast<float>(b0_intval) * mode_rscale;
-				b1_fval = static_cast<float>(b1_intval) * mode_rscale;
+				b0_fval = b0_intval * mode_rscale;
+				b1_fval = b1_intval * mode_rscale;
 
 				// finally, recompute D0 and D1, then quantize and unquantize them
 				float d0_fval = a_fval - b0_fval - c_fval - color0.lane(1);
@@ -1835,8 +1835,8 @@ namespace ASTCEnc
 			// but usable. This representation is used if the light color is more than 4x the
 			// color value of the dark color.
 			float[] vals = new float[6];
-			vals[0] = color0_bak.lane<0>();
-			vals[1] = color1_bak.lane<0>();
+			vals[0] = color0_bak.lane(0);
+			vals[1] = color1_bak.lane(0);
 			vals[2] = color0_bak.lane(1);
 			vals[3] = color1_bak.lane(1);
 			vals[4] = color0_bak.lane(2);

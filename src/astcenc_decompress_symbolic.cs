@@ -98,7 +98,7 @@ namespace ASTCEnc
 					}
 
 					vint4 colorf16 = new vint4(
-						unorm16_to_sf16(colori.lane<0>()),
+						unorm16_to_sf16(colori.lane(0)),
 						unorm16_to_sf16(colori.lane(1)),
 						unorm16_to_sf16(colori.lane(2)),
 						unorm16_to_sf16(colori.lane(3))
@@ -129,7 +129,7 @@ namespace ASTCEnc
 				// TODO: Skip this and add constant color transfer to img block?
 				for (int i = 0; i < bsd.texel_count; i++)
 				{
-					blk.data_r[i] = color.lane<0>();
+					blk.data_r[i] = color.lane(0);
 					blk.data_g[i] = color.lane(1);
 					blk.data_b[i] = color.lane(2);
 					blk.data_a[i] = color.lane(3);
@@ -237,7 +237,7 @@ namespace ASTCEnc
 				blk.alpha_lns[i] = alpha_hdr_endpoint[partition];
 				blk.nan_texel[i] = nan_endpoint[partition];
 
-				blk.data_r[i] = color.lane<0>();
+				blk.data_r[i] = color.lane(0);
 				blk.data_g[i] = color.lane(1);
 				blk.data_b[i] = color.lane(2);
 				blk.data_a[i] = color.lane(3);

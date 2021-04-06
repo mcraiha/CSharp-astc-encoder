@@ -180,7 +180,7 @@ namespace ASTCEnc
 
 			for (int i = 0; i < partition_count; i++)
 			{
-				cluster_centers[i] = color_sum[i] * (1.0f / static_cast<float>(weight_sum[i]));
+				cluster_centers[i] = color_sum[i] * (1.0f / weight_sum[i]);
 			}
 		}
 
