@@ -237,5 +237,26 @@ namespace ASTCEnc
 		{
 			return (int)(v);
 		}
+
+		/**
+		* @brief Population bit count.
+		*
+		* @param v   The value to population count.
+		*
+		* @return The number of 1 bits.
+		*/
+		public static int popcount(ulong v)
+		{
+			ulong mask1 = 0x5555555555555555;
+			ulong mask2 = 0x3333333333333333;
+			ulong mask3 = 0x0F0F0F0F0F0F0F0F;
+			v -= (v >> 1) & mask1;
+			v = (v & mask2) + ((v >> 2) & mask2);
+			v += v >> 4;
+			v &= mask3;
+			v *= 0x0101010101010101;
+			v >>= 56;
+			return (int)v;
+		}
 	}
 }
