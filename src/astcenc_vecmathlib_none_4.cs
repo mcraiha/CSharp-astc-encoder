@@ -124,6 +124,14 @@ namespace ASTCEnc
 		}
 
 		/**
+		* @brief Return the horizontal sum of RGB vector lanes as a scalar.
+		*/
+		public static float hadd_rgb_s(vfloat4 a)
+		{
+			return a.lane(0) + a.lane(1) + a.lane(2);
+		}
+
+		/**
 		* @brief Return the dot product for the full 4 lanes, returning scalar.
 		*/
 		public static float dot_s(vfloat4 a, vfloat4 b)
@@ -207,6 +215,51 @@ namespace ASTCEnc
 						a.m[1] > b.m[1] ? a.m[1] : b.m[1],
 						a.m[2] > b.m[2] ? a.m[2] : b.m[2],
 						a.m[3] > b.m[3] ? a.m[3] : b.m[3]);
+		}
+
+		/**
+		* @brief Return the horizontal minimum of a vector.
+		*/
+		public static float hmin_s(vfloat4 a)
+		{
+			return hmin(a).lane(0);
+		}
+
+		/**
+		* @brief Return the horizontal min of RGB vector lanes as a scalar.
+		*/
+		public static float hmin_rgb_s(vfloat4 a)
+		{
+			a.set_lane(3, a.lane(0));
+			return hmin_s(a);
+		}
+
+		/**
+		* @brief Return the horizontal maximum of a vector.
+		*/
+		public static float hmax_s(vfloat4 a)
+		{
+			return hmax(a).lane(0);
+		}
+
+		/**
+		* @brief Return the horizontal minimum of a vector.
+		*/
+		public static vfloat4 hmin(vfloat4 a)
+		{
+			float tmp1 = Math.Min(a.m[0], a.m[1]);
+			float tmp2 = Math.Min(a.m[2], a.m[3]);
+			return new vfloat4(Math.Min(tmp1, tmp2));
+		}
+
+		/**
+		* @brief Return the horizontal maximum of a vector.
+		*/
+		public static vfloat4 hmax(vfloat4 a)
+		{
+			float tmp1 = Math.Max(a.m[0], a.m[1]);
+			float tmp2 = Math.Max(a.m[2], a.m[3]);
+			return new vfloat4(Math.Max(tmp1, tmp2));
 		}
 
 		public static vfloat4 operator +(vfloat4 a, vfloat4 b)
