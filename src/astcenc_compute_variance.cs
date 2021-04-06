@@ -177,9 +177,9 @@ namespace ASTCEnc
 							if (!are_powers_1)
 							{
 								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane<1>(), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane<2>(), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane<3>(), 1e-6f), alpha_power));
+								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
+								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
+								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
 							}
 
 							varbufstore(varbuf1, yst, zst, z, y, x, d);
@@ -223,9 +223,9 @@ namespace ASTCEnc
 							{
 								// TODO: Vectorize this ...
 								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane<1>(), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane<2>(), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane<3>(), 1e-6f), alpha_power));
+								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
+								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
+								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
 							}
 
 							VARBUF1(z, y, x) = d;
@@ -274,9 +274,9 @@ namespace ASTCEnc
 							if (!are_powers_1)
 							{
 								d.set_lane<0>(powf(astc::max(d.lane<0>(), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane<1>(), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane<2>(), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane<3>(), 1e-6f), alpha_power));
+								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
+								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
+								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
 							}
 
 							VARBUF1(z, y, x) = d;
@@ -403,14 +403,14 @@ namespace ASTCEnc
 							int x_high = x_src + alpha_kernel_radius + 1;
 
 							// Summed-area table lookups for alpha average
-							float vasum = (  VARBUF1(z_high, y_low,  x_low).lane<3>()
-										- VARBUF1(z_high, y_low,  x_high).lane<3>()
-										- VARBUF1(z_high, y_high, x_low).lane<3>()
-										+ VARBUF1(z_high, y_high, x_high).lane<3>()) -
-										(  VARBUF1(z_low,  y_low,  x_low).lane<3>()
-										- VARBUF1(z_low,  y_low,  x_high).lane<3>()
-										- VARBUF1(z_low,  y_high, x_low).lane<3>()
-										+ VARBUF1(z_low,  y_high, x_high).lane<3>());
+							float vasum = (  VARBUF1(z_high, y_low,  x_low).lane(3)
+										- VARBUF1(z_high, y_low,  x_high).lane(3)
+										- VARBUF1(z_high, y_high, x_low).lane(3)
+										+ VARBUF1(z_high, y_high, x_high).lane(3)) -
+										(  VARBUF1(z_low,  y_low,  x_low).lane(3)
+										- VARBUF1(z_low,  y_low,  x_high).lane(3)
+										- VARBUF1(z_low,  y_high, x_low).lane(3)
+										+ VARBUF1(z_low,  y_high, x_high).lane(3));
 
 							int out_index = z_dst * zdt + y_dst * ydt + x_dst;
 							input_alpha_averages[out_index] = (vasum * alpha_rsamples);
@@ -462,10 +462,10 @@ namespace ASTCEnc
 						int x_high = x_src + alpha_kernel_radius + 1;
 
 						// Summed-area table lookups for alpha average
-						float vasum = VARBUF1(0, y_low,  x_low).lane<3>()
-									- VARBUF1(0, y_low,  x_high).lane<3>()
-									- VARBUF1(0, y_high, x_low).lane<3>()
-									+ VARBUF1(0, y_high, x_high).lane<3>();
+						float vasum = VARBUF1(0, y_low,  x_low).lane(3)
+									- VARBUF1(0, y_low,  x_high).lane(3)
+									- VARBUF1(0, y_high, x_low).lane(3)
+									+ VARBUF1(0, y_high, x_high).lane(3);
 
 						int out_index = y_dst * ydt + x_dst;
 						input_alpha_averages[out_index] = (vasum * alpha_rsamples);

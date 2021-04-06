@@ -99,9 +99,9 @@ namespace ASTCEnc
 
 					vint4 colorf16 = new vint4(
 						unorm16_to_sf16(colori.lane<0>()),
-						unorm16_to_sf16(colori.lane<1>()),
-						unorm16_to_sf16(colori.lane<2>()),
-						unorm16_to_sf16(colori.lane<3>())
+						unorm16_to_sf16(colori.lane(1)),
+						unorm16_to_sf16(colori.lane(2)),
+						unorm16_to_sf16(colori.lane(3))
 					);
 
 					color = float16_to_float(colorf16);
@@ -130,9 +130,9 @@ namespace ASTCEnc
 				for (int i = 0; i < bsd.texel_count; i++)
 				{
 					blk.data_r[i] = color.lane<0>();
-					blk.data_g[i] = color.lane<1>();
-					blk.data_b[i] = color.lane<2>();
-					blk.data_a[i] = color.lane<3>();
+					blk.data_g[i] = color.lane(1);
+					blk.data_b[i] = color.lane(2);
+					blk.data_a[i] = color.lane(3);
 					blk.rgb_lns[i] = use_lns;
 					blk.alpha_lns[i] = use_lns;
 					blk.nan_texel[i] = use_nan;
@@ -238,9 +238,9 @@ namespace ASTCEnc
 				blk.nan_texel[i] = nan_endpoint[partition];
 
 				blk.data_r[i] = color.lane<0>();
-				blk.data_g[i] = color.lane<1>();
-				blk.data_b[i] = color.lane<2>();
-				blk.data_a[i] = color.lane<3>();
+				blk.data_g[i] = color.lane(1);
+				blk.data_b[i] = color.lane(2);
+				blk.data_a[i] = color.lane(3);
 			}
 
 			imageblock_initialize_orig_from_work(blk, bsd.texel_count);

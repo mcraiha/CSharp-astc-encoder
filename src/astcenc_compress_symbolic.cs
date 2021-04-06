@@ -953,18 +953,18 @@ namespace ASTCEnc
 
 								float mixing = ctx.config.v_rgba_mean_stdev_mix;
 								avg.set_lane<0>(favg * mixing + avg.lane<0>() * (1.0f - mixing));
-								avg.set_lane<1>(favg * mixing + avg.lane<1>() * (1.0f - mixing));
-								avg.set_lane<2>(favg * mixing + avg.lane<2>() * (1.0f - mixing));
+								avg.set_lane<1>(favg * mixing + avg.lane(1) * (1.0f - mixing));
+								avg.set_lane<2>(favg * mixing + avg.lane(2) * (1.0f - mixing));
 
 								variance.set_lane<0>(fvar * mixing + variance.lane<0>() * (1.0f - mixing));
-								variance.set_lane<1>(fvar * mixing + variance.lane<1>() * (1.0f - mixing));
-								variance.set_lane<2>(fvar * mixing + variance.lane<2>() * (1.0f - mixing));
+								variance.set_lane<1>(fvar * mixing + variance.lane(1) * (1.0f - mixing));
+								variance.set_lane<2>(fvar * mixing + variance.lane(2) * (1.0f - mixing));
 
 								// TODO: Vectorize this ...
 								vfloat4 stdev = new vfloat4(astc::sqrt(Math.Max(variance.lane<0>(), 0.0f)),
-														astc::sqrt(Math.Max(variance.lane<1>(), 0.0f)),
-														astc::sqrt(Math.Max(variance.lane<2>(), 0.0f)),
-														astc::sqrt(Math.Max(variance.lane<3>(), 0.0f)));
+														astc::sqrt(Math.Max(variance.lane(1), 0.0f)),
+														astc::sqrt(Math.Max(variance.lane(2), 0.0f)),
+														astc::sqrt(Math.Max(variance.lane(3), 0.0f)));
 
 								vfloat4 scalea = new vfloat4(ctx.config.v_rgb_mean, ctx.config.v_rgb_mean, ctx.config.v_rgb_mean, ctx.config.v_a_mean);
 								avg = avg * scalea;
@@ -986,7 +986,7 @@ namespace ASTCEnc
 								denom = Math.Max(denom, 0.1f);
 								denom = 1.0f / denom;
 								error_weight.set_lane<0>(error_weight.lane<0>() * (1.0f + xN * xN * denom));
-								error_weight.set_lane<3>(error_weight.lane<3>() * (1.0f + yN * yN * denom));
+								error_weight.set_lane<3>(error_weight.lane(3) * (1.0f + yN * yN * denom));
 							}
 
 							if (ctx.config.flags & ASTCENC_FLG_USE_ALPHA_WEIGHT)
@@ -1005,8 +1005,8 @@ namespace ASTCEnc
 
 								alpha_scale *= alpha_scale;
 								error_weight.set_lane<0>(error_weight.lane<0>() * alpha_scale);
-								error_weight.set_lane<1>(error_weight.lane<1>() * alpha_scale);
-								error_weight.set_lane<2>(error_weight.lane<2>() * alpha_scale);
+								error_weight.set_lane<1>(error_weight.lane(1) * alpha_scale);
+								error_weight.set_lane<2>(error_weight.lane(2) * alpha_scale);
 							}
 
 							error_weight = error_weight * color_weights;
@@ -1035,9 +1035,9 @@ namespace ASTCEnc
 				error_weight_sum = error_weight_sum + ewb.error_weights[i];
 
 				float wr = ewb.error_weights[i].lane<0>();
-				float wg = ewb.error_weights[i].lane<1>();
-				float wb = ewb.error_weights[i].lane<2>();
-				float wa = ewb.error_weights[i].lane<3>();
+				float wg = ewb.error_weights[i].lane(1);
+				float wb = ewb.error_weights[i].lane(2);
+				float wa = ewb.error_weights[i].lane(3);
 
 				ewb.texel_weight_r[i] = wr;
 				ewb.texel_weight_g[i] = wg;
