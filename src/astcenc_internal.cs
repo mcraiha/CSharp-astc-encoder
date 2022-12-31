@@ -115,10 +115,10 @@ namespace ASTCEnc
 
 	public struct PhysicalCompressedBlock
 	{
-		public byte[] data;
-		public PhysicalCompressedBlock(bool unused)
+		public byte[] data = new byte[16];
+		public PhysicalCompressedBlock()
 		{
-			this.data = new byte[16];
+
 		}
 	}
 
@@ -127,33 +127,94 @@ namespace ASTCEnc
 		/* ============================================================================
 		Constants
 		============================================================================ */
-		public const int MAX_TEXELS_PER_BLOCK = 216;
-		public const int MAX_KMEANS_TEXELS = 64;
-		public const int MAX_WEIGHTS_PER_BLOCK = 64;
-		public const int PLANE2_WEIGHTS_OFFSET = (MAX_WEIGHTS_PER_BLOCK / 2);
-		public const int MIN_WEIGHT_BITS_PER_BLOCK = 24;
-		public const int MAX_WEIGHT_BITS_PER_BLOCK = 96;
-		public const int PARTITION_BITS = 10;
-		public const int PARTITION_COUNT = (1 << PARTITION_BITS);
+		public const uint ASTCENC_BLOCK_MAX_TEXELS = 216;
 
-		// the sum of weights for one texel.
-		public const int TEXEL_WEIGHT_SUM = 16;
-		public const int MAX_DECIMATION_MODES = 87;
-		public const int MAX_WEIGHT_MODES = 2048;
+		/** @brief The maximum number of texels a block can support (6x6x6 block). */
+		public const uint BLOCK_MAX_TEXELS = ASTCENC_BLOCK_MAX_TEXELS;
+		
+		/** @brief The maximum number of components a block can support. */
+		public const uint BLOCK_MAX_COMPONENTS = 4;
 
-		// A high default error value
+		/** @brief The maximum number of partitions a block can support. */
+		public const uint BLOCK_MAX_PARTITIONS = 4;
+
+		/** @brief The number of partitionings, per partition count, suported by the ASTC format. */
+		public const uint BLOCK_MAX_PARTITIONINGS= 1024;
+
+		/** @brief The maximum number of weights used during partition selection for texel clustering. */
+		public const byte BLOCK_MAX_KMEANS_TEXELS = 64;
+
+		/** @brief The maximum number of weights a block can support. */
+		public const uint BLOCK_MAX_WEIGHTS = 64;
+
+		/** @brief The maximum number of weights a block can support per plane in 2 plane mode. */
+		public const uint BLOCK_MAX_WEIGHTS_2PLANE = BLOCK_MAX_WEIGHTS / 2;
+
+		/** @brief The minimum number of weight bits a candidate encoding must encode. */
+		public const uint BLOCK_MIN_WEIGHT_BITS = 24;
+
+		/** @brief The maximum number of weight bits a candidate encoding can encode. */
+		public const uint BLOCK_MAX_WEIGHT_BITS = 96;
+
+		/** @brief The index indicating a bad (unused) block mode in the remap array. */
+		public const ushort BLOCK_BAD_BLOCK_MODE = 0xFFFFu;
+
+		/** @brief The index indicating a bad (unused) partitioning in the remap array. */
+		public const ushort BLOCK_BAD_PARTITIONING = 0xFFFFu;
+
+		/** @brief The number of partition index bits supported by the ASTC format . */
+		public const uint PARTITION_INDEX_BITS = 10 ;
+
+		/** @brief The offset of the plane 2 weights in shared weight arrays. */
+		public const uint WEIGHTS_PLANE2_OFFSET = BLOCK_MAX_WEIGHTS_2PLANE;
+
+		/** @brief The sum of quantized weights for one texel. */
+		public const float WEIGHTS_TEXEL_SUM = 16.0f;
+
+		/** @brief The number of block modes supported by the ASTC format. */
+		public const uint WEIGHTS_MAX_BLOCK_MODES = 2048;
+
+		/** @brief The number of weight grid decimation modes supported by the ASTC format. */
+		public const uint WEIGHTS_MAX_DECIMATION_MODES = 87;
+
+		/** @brief The high default error used to initialize error trackers. */
 		public const float ERROR_CALC_DEFAULT = 1e30f;
 
-		/* ============================================================================
-		Compile-time tuning parameters
-		============================================================================ */
-		// The max texel count in a block which can try the one partition fast path.
-		// Default: enabled for 4x4 and 5x4 blocks.
-		public const uint TUNE_MAX_TEXELS_MODE0_FASTPATH = 24;
+		/**
+		* @brief The minimum texel count for a block to use the one partition fast path.
+		*
+		* This setting skips 4x4 and 5x4 block sizes.
+		*/
+		public const uint TUNE_MIN_TEXELS_MODE0_FASTPATH = 24;
 
-		// The maximum number of candidate encodings returned for each encoding mode.
-		// Default: depends on quality preset
-		public const uint TUNE_MAX_TRIAL_CANDIDATES = 4;
+		/**
+		* @brief The maximum number of candidate encodings tested for each encoding mode.
+		*
+		* This can be dynamically reduced by the compression quality preset.
+		*/
+		public const uint TUNE_MAX_TRIAL_CANDIDATES = 8;
+
+		/**
+		* @brief The maximum number of candidate partitionings tested for each encoding mode.
+		*
+		* This can be dynamically reduced by the compression quality preset.
+		*/
+		public const uint TUNE_MAX_PARTITIIONING_CANDIDATES = 32;
+
+		/**
+		* @brief The maximum quant level using full angular endpoint search method.
+		*
+		* The angular endpoint search is used to find the min/max weight that should
+		* be used for a given quantization level. It is effective but expensive, so
+		* we only use it where it has the most value - low quant levels with wide
+		* spacing. It is used below TUNE_MAX_ANGULAR_QUANT (inclusive). Above this we
+		* assume the min weight is 0.0f, and the max weight is 1.0f.
+		*
+		* Note the angular algorithm is vectorized, and using QUANT_12 exactly fills
+		* one 8-wide vector. Decreasing by one doesn't buy much performance, and
+		* increasing by one is disproportionately expensive.
+		*/
+		public const uint TUNE_MAX_ANGULAR_QUANT = 7; /* QUANT_12 */
 	}
 
 	public struct PartitionMetrics

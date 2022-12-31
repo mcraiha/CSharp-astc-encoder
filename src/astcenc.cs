@@ -271,8 +271,77 @@ namespace ASTCEnc
 		public uint dim_z;
 		/** @brief The data type per channel. */
 		public ASTCEncType data_type;
-		/** @brief The array of 2D slices, of length dim_z. */
+		/** @brief The array of 2D slices, of length @c dim_z. */
 		public byte[] data;
+	}
+
+	public struct ASTCBlockInfo
+	{
+		/** @brief The block encoding color profile. */
+		public ASTCEncProfile profile;
+
+		/** @brief The number of texels in the X dimension. */
+		public uint block_x;
+
+		/** @brief The number of texels in the Y dimension. */
+		public uint block_y;
+
+		/** @brief The number of texels in the Z dimension. */
+		public uint block_z;
+
+		/** @brief The number of texels in the block. */
+		public uint texel_count;
+
+		/** @brief True if this block is an error block. */
+		public bool is_error_block;
+
+		/** @brief True if this block is a constant color block. */
+		public bool is_constant_block;
+
+		/** @brief True if this block is an HDR block. */
+		public bool is_hdr_block;
+
+		/** @brief True if this block uses two weight planes. */
+		public bool is_dual_plane_block;
+
+		/** @brief The number of partitions if not constant color. */
+		public uint partition_count;
+
+		/** @brief The partition index if 2 - 4 partitions used. */
+		public uint partition_index;
+
+		/** @brief The component index of the second plane if dual plane. */
+		public uint dual_plane_component;
+
+		/** @brief The color endpoint encoding mode for each partition. */
+		public uint[] color_endpoint_modes = new uint[4];
+
+		/** @brief The number of color endpoint quantization levels. */
+		public uint color_level_count;
+
+		/** @brief The number of weight quantization levels. */
+		public uint weight_level_count;
+
+		/** @brief The number of weights in the X dimension. */
+		public uint weight_x;
+
+		/** @brief The number of weights in the Y dimension. */
+		public uint weight_y;
+
+		/** @brief The number of weights in the Z dimension. */
+		public uint weight_z;
+
+		/** @brief The unpacked color endpoints for each partition. */
+		public float[,,] color_endpoints = new float[4, 2, 4];
+
+		/** @brief The per-texel interpolation weights for the block. */
+		public float[] weight_values_plane1 = new float[216];
+
+		/** @brief The per-texel interpolation weights for the block. */
+		public float[] weight_values_plane2 = new float[216];
+
+		/** @brief The per-texel partition assignments for the block. */
+		public byte[] partition_assignment = new byte[216];
 	}
 
 	/**

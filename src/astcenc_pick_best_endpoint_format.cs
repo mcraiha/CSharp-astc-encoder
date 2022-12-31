@@ -504,7 +504,7 @@ namespace ASTCEnc
 		}
 
 		// for 3 partitions, find the best format combinations for every (quantization-mode, integer-count) combination
-		static void three_partitions_find_best_combination_for_every_quantization_and_integer_count(
+		public static void three_partitions_find_best_combination_for_every_quantization_and_integer_count(
 			float[,,] best_error,	// indexed by (partition, quant-level, integer-count)
 			int[,,] format_of_choice,
 			float[,] combined_best_error,
@@ -556,7 +556,7 @@ namespace ASTCEnc
 		}
 
 		// for 3 partitions, find the best combination (three formats + a quantization level) for a given bitcount
-		static void three_partitions_find_best_combination_for_bitcount(
+		public static void three_partitions_find_best_combination_for_bitcount(
 			float combined_best_error[21][10],
 			int formats_of_choice[21][10][3],
 			int bits_available,
