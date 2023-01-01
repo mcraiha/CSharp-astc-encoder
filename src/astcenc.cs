@@ -344,6 +344,11 @@ namespace ASTCEnc
 		public byte[] partition_assignment = new byte[216];
 	}
 
+	public class ASTCDec
+	{
+		
+	}
+
 	/**
 	* @brief A codec color profile.
 	*/
@@ -431,7 +436,7 @@ namespace ASTCEnc
 									ASTCENC_FLG_USE_PERCEPTUAL |
 									ASTCENC_FLG_DECOMPRESS_ONLY |
 									ASTCENC_FLG_SELF_DECOMPRESS_ONLY;
-			}
+	}
 
 	
 }

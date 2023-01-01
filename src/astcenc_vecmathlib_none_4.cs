@@ -1,4 +1,12 @@
+global using vfloat = ASTCEnc.vfloat4;
+global using vfloatacc = ASTCEnc.vfloat4;
+global using vint = ASTCEnc.vint4;
+global using vmask = ASTCEnc.vmask4;
+// ASTCENC_SIMD_WIDTH is defined in 
+
 using System;
+
+
 
 namespace ASTCEnc
 {
@@ -124,11 +132,12 @@ namespace ASTCEnc
 		}
 
 		/**
-		* @brief Return the horizontal sum of RGB vector lanes as a scalar.
+		* @brief Return the horizontal sum of a vector.
 		*/
-		public static float hadd_rgb_s(vfloat4 a)
+		public static float hadd_s(vfloat4 a)
 		{
-			return a.lane(0) + a.lane(1) + a.lane(2);
+			// Use halving add, gives invariance with SIMD versions
+			return (a.m[0] + a.m[2]) + (a.m[1] + a.m[3]);
 		}
 
 		/**
@@ -252,6 +261,17 @@ namespace ASTCEnc
 			return new vfloat4(Math.Min(tmp1, tmp2));
 		}
 
+		public static void haccumulate(vfloat4 accum, vfloat4 a)
+		{
+			accum = accum + a;
+		}
+
+		public static void haccumulate(vfloat4 accum, vfloat4 a, vmask4 m)
+		{
+			a = select(vfloat4.zero(), a, m);
+			haccumulate(accum, a);
+		}
+
 		/**
 		* @brief Return the horizontal maximum of a vector.
 		*/
@@ -326,7 +346,6 @@ namespace ASTCEnc
 		*/
 		public vint4(int[] p)
 		{
-			this.m = new int[4];
 			this.m[0] = p[0];
 			this.m[1] = p[1];
 			this.m[2] = p[2];
@@ -338,7 +357,6 @@ namespace ASTCEnc
 		*/
 		public vint4(byte[] p)
 		{
-			this.m = new int[4];
 			this.m[0] = p[0];
 			this.m[1] = p[1];
 			this.m[2] = p[2];
@@ -352,7 +370,6 @@ namespace ASTCEnc
 		*/
 		public vint4(int a, int b, int c, int d)
 		{
-			this.m = new int[4];
 			this.m[0] = a;
 			this.m[1] = b;
 			this.m[2] = c;
@@ -367,7 +384,6 @@ namespace ASTCEnc
 		*/
 		public vint4(int a)
 		{
-			this.m = new int[4];
 			this.m[0] = a;
 			this.m[1] = a;
 			this.m[2] = a;
@@ -407,17 +423,17 @@ namespace ASTCEnc
 		}
 
 		/**
-		* @brief Return the horizontal sum of RGB vector lanes as a scalar.
+		* @brief Return the horizontal sum of vector lanes as a scalar.
 		*/
-		public static int hadd_rgb_s(vint4 a)
+		public static int hadd_s(vint4 a)
 		{
-			return a.lane(0) + a.lane(1) + a.lane(2);
+			return a.m[0] + a.m[1] + a.m[2] + a.m[3];
 		}
 
 		/**
 		* @brief The vector ...
 		*/
-		private readonly int[] m;
+		private readonly int[] m = new int[4];
 
 		public static vint4 operator +(vint4 a, vint4 b)
 		{
@@ -465,7 +481,7 @@ namespace ASTCEnc
 		/**
 		* @brief Overload: vector by vector inequality.
 		*/
-		public static  vmask4 operator!=(vint4 a, vint4 b)
+		public static vmask4 operator!=(vint4 a, vint4 b)
 		{
 			return new vmask4((a.m[0] != b.m[0]) ? 1 : 0,
 						(a.m[1] != b.m[1]) ? 1 : 0,
@@ -532,7 +548,6 @@ namespace ASTCEnc
 		*/
 		public vmask4(int[] p)
 		{
-			m = new int[4];
 			m[0] = p[0];
 			m[1] = p[1];
 			m[2] = p[2];
@@ -546,7 +561,6 @@ namespace ASTCEnc
 		*/
 		public vmask4(int a, int b, int c, int d)
 		{
-			m = new int[4];
 			m[0] = a;
 			m[1] = b;
 			m[2] = c;
@@ -556,6 +570,6 @@ namespace ASTCEnc
 		/**
 		* @brief The vector ...
 		*/
-		public readonly int[] m;
+		public readonly int[] m = new int[4];
 	}
 }

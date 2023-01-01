@@ -215,6 +215,8 @@ namespace ASTCEnc
 		* increasing by one is disproportionately expensive.
 		*/
 		public const uint TUNE_MAX_ANGULAR_QUANT = 7; /* QUANT_12 */
+
+		public const int ASTCENC_SIMD_WIDTH = 4;
 	}
 
 	public struct PartitionMetrics
@@ -242,19 +244,16 @@ namespace ASTCEnc
 
 	public struct PartitionInfo
 	{
-		public int partition_count;
-		public byte[] texels_per_partition;
-		public byte[] partition_of_texel;
-		public byte[,] texels_of_partition;
-		public ulong[] coverage_bitmaps;
+		public ushort partition_count;
+		public ushort partition_index;
+		public byte[] partition_texel_count = new byte[Constants.BLOCK_MAX_PARTITIONS];
+		public byte[] partition_of_texel = new byte[Constants.BLOCK_MAX_TEXELS];
+		public byte[,] texels_of_partition = new byte[Constants.BLOCK_MAX_PARTITIONS, Constants.BLOCK_MAX_TEXELS];
 
-		public PartitionInfo(bool unused)
+
+		public PartitionInfo()
 		{
-			this.partition_count = 0;
-			this.texels_per_partition = new byte[4];
-			this.partition_of_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texels_of_partition = new byte[4, Constants.MAX_TEXELS_PER_BLOCK];
-			this.coverage_bitmaps = new ulong[4];
+			
 		}
 	}
 
@@ -453,40 +452,29 @@ namespace ASTCEnc
 	// on conversions to/from uint8_t (this also allows us to handle HDR textures easily)
 	public struct ImageBlock
 	{
-		public float[] data_r;  // the data that we will compress, either linear or LNS (0..65535 in both cases)
-		public float[] data_g;
-		public float[] data_b;
-		public float[] data_a;
+		public float[] data_r = new float[Constants.BLOCK_MAX_TEXELS]; 
+		public float[] data_g = new float[Constants.BLOCK_MAX_TEXELS];
+		public float[] data_b = new float[Constants.BLOCK_MAX_TEXELS];
+		public float[] data_a = new float[Constants.BLOCK_MAX_TEXELS];
+
+		public byte texel_count;
 
 		public vfloat4 origin_texel;
 		public vfloat4 data_min;
+		public vfloat4 data_mean;
 		public vfloat4 data_max;
 		public bool grayscale;
 
-		public byte[] rgb_lns;      // 1 if RGB data are being treated as LNS
-		public byte[] alpha_lns;    // 1 if Alpha data are being treated as LNS
-		public byte[] nan_texel;    // 1 if the texel is a NaN-texel.
-		public int xpos, ypos, zpos;
+		public byte[] rgb_lns = new byte[Constants.BLOCK_MAX_TEXELS];      // 1 if RGB data are being treated as LNS
+		public byte[] alpha_lns = new byte[Constants.BLOCK_MAX_TEXELS];    // 1 if Alpha data are being treated as LNS
+	
+		public uint xpos;
+		public uint ypos;
+		public uint zpos;
 
 		public ImageBlock(bool notUsed)
 		{
-			this.data_r = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.data_g = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.data_b = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.data_a = new float[Constants.MAX_TEXELS_PER_BLOCK];
-
-			this.origin_texel = new vfloat4();
-			this.data_min = new vfloat4();
-			this.data_max = new vfloat4();
-			this.grayscale = false;
-
-			this.rgb_lns = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.alpha_lns = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.nan_texel = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-
-			this.xpos = 0;
-			this.ypos = 0;
-			this.zpos = 0;
+			
 		}
 
 		public vfloat4 Texel(int index)
@@ -499,10 +487,9 @@ namespace ASTCEnc
 
 		public vfloat4 Texel3(int index)
 		{
-			return new vfloat4(data_r[index],
+			return new vfloat3(data_r[index],
 		               data_g[index],
-		               data_b[index],
-		               0.0f);
+		               data_b[index]);
 		}
 	}
 
