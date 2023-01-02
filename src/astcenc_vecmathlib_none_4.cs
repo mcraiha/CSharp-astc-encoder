@@ -72,17 +72,10 @@ namespace ASTCEnc
 
 	public struct vfloat4
 	{
-		private const int internalSize = 4;
-		public float[] m;
-
-		public vfloat4(bool unusedValue)
-		{
-			this.m = new float[internalSize];
-		}
+		public float[] m = new float[4];
 
 		public vfloat4(float[] p)
 		{
-			this.m = new float[internalSize];
 			this.m[0] = p[0];
 			this.m[1] = p[1];
 			this.m[2] = p[2];
@@ -91,7 +84,6 @@ namespace ASTCEnc
 
 		public vfloat4(float v0, float v1, float v2, float v3)
 		{
-			this.m = new float[internalSize];
 			this.m[0] = v0;
 			this.m[1] = v1;
 			this.m[2] = v2;
@@ -100,7 +92,6 @@ namespace ASTCEnc
 
 		public vfloat4(float a)
 		{
-			this.m = new float[internalSize];
 			this.m[0] = a;
 			this.m[1] = a;
 			this.m[2] = a;
@@ -121,6 +112,21 @@ namespace ASTCEnc
 		public void set_lane(int l, float a)
 		{
 			m[l] = a;
+		}
+
+		public vfloat4 swz2(int l0, int l1)
+		{
+			return new vfloat4(this.lane(l0), this.lane(l1), 0.0f, 0.0f);
+		}
+
+		public vfloat4 swz3(int l0, int l1, int l2)
+		{
+			return new vfloat4(this.lane(l0), this.lane(l1), this.lane(l2), 0.0f);
+		}
+
+		public vfloat4 swz4(int l0, int l1, int l2, int l3)
+		{
+			return new vfloat4(this.lane(l0), this.lane(l1), this.lane(l2), this.lane(l3));
 		}
 
 		/**
@@ -327,6 +333,29 @@ namespace ASTCEnc
 						a * b.m[2],
 						a * b.m[3]);
 		}
+
+		public static vfloat4 operator/(vfloat4 a, vfloat4 b)
+		{
+			return new vfloat4(a.m[0] / b.m[0],
+						a.m[1] / b.m[1],
+						a.m[2] / b.m[2],
+						a.m[3] / b.m[3]);
+		}
+
+		public static vfloat4 operator/(vfloat4 a, float b)
+		{
+			return a / new vfloat4(b);
+		}
+
+		public static vfloat4 operator/(float a, vfloat4 b)
+		{
+			return new vfloat4(a) / b;
+		}
+
+		public static vfloat4 loada(float[] p, uint offset)
+		{
+			return new vfloat4(p[offset], p[offset + 1], p[offset + 2], p[offset + 3]);
+		}
 	}
 
 	// ============================================================================
@@ -361,6 +390,14 @@ namespace ASTCEnc
 			this.m[1] = p[1];
 			this.m[2] = p[2];
 			this.m[3] = p[3];
+		}
+
+		public vint4(byte[] p, uint offset)
+		{
+			this.m[0] = p[offset + 0];
+			this.m[1] = p[offset + 1];
+			this.m[2] = p[offset + 2];
+			this.m[3] = p[offset + 3];
 		}
 
 		/**
@@ -554,22 +591,83 @@ namespace ASTCEnc
 			m[3] = p[3];
 		}
 
-		/**
-		* @brief Construct from 4 scalar values.
-		*
-		* The value of @c a is stored to lane 0 (LSB) in the SIMD register.
-		*/
-		public vmask4(int a, int b, int c, int d)
+		public vmask4(bool a)
 		{
-			m[0] = a;
-			m[1] = b;
-			m[2] = c;
-			m[3] = d;
+			m[0] = a == false ? 0 : -1;
+			m[1] = a == false ? 0 : -1;
+			m[2] = a == false ? 0 : -1;
+			m[3] = a == false ? 0 : -1;
+		}
+
+		public vmask4(bool a, bool b, bool c, bool d)
+		{
+			m[0] = a == false ? 0 : -1;
+			m[1] = b == false ? 0 : -1;
+			m[2] = c == false ? 0 : -1;
+			m[3] = d == false ? 0 : -1;
 		}
 
 		/**
 		* @brief The vector ...
 		*/
 		public readonly int[] m = new int[4];
+
+		public static int mask(vmask4 a)
+		{
+			return ((a.m[0] >> 31) & 0x1) |
+				((a.m[1] >> 30) & 0x2) |
+				((a.m[2] >> 29) & 0x4) |
+				((a.m[3] >> 28) & 0x8);
+		}
+
+		public static bool any(vmask4 a)
+		{
+			return mask(a) != 0;
+		}
+
+		public static bool all(vmask4 a)
+		{
+			return mask(a) == 0xF;
+		}
+
+		public static vmask4 operator|(vmask4 a, vmask4 b)
+		{
+			return new vmask4(a.m[0] | b.m[0],
+						a.m[1] | b.m[1],
+						a.m[2] | b.m[2],
+						a.m[3] | b.m[3]);
+		}
+
+		public static vmask4 operator&(vmask4 a, vmask4 b)
+		{
+			return new vmask4(a.m[0] & b.m[0],
+						a.m[1] & b.m[1],
+						a.m[2] & b.m[2],
+						a.m[3] & b.m[3]);
+		}
+
+		public static vmask4 operator^(vmask4 a, vmask4 b)
+		{
+			return new vmask4(a.m[0] ^ b.m[0],
+						a.m[1] ^ b.m[1],
+						a.m[2] ^ b.m[2],
+						a.m[3] ^ b.m[3]);
+		}
+
+		public static vmask4 operator~(vmask4 a)
+		{
+			return new vmask4(~a.m[0],
+						~a.m[1],
+						~a.m[2],
+						~a.m[3]);
+		}
+
+		public static vmask4 operator<(vfloat4 a, vfloat4 b)
+		{
+			return new vmask4(a.m[0] < b.m[0],
+						a.m[1] < b.m[1],
+						a.m[2] < b.m[2],
+						a.m[3] < b.m[3]);
+		}
 	}
 }
