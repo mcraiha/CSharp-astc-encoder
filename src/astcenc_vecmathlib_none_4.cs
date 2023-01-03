@@ -184,6 +184,16 @@ namespace ASTCEnc
 			return new vfloat4(d3, d3, d3, 0.0f);
 		}
 
+		public static vfloat4 vfloat3(float a, float b, float c)
+		{
+			return new vfloat4(a, b, c, 0.0f);
+		}
+
+		public static vfloat4 vfloat2(float a, float b)
+		{
+			return new vfloat4(a, b, 0.0f, 0.0f);
+		}
+
 		/**
 		* @brief Return lanes from @c b if MSB of @c cond is set, else @c a.
 		*/
@@ -509,10 +519,10 @@ namespace ASTCEnc
 		*/
 		public static vmask4 operator==(vint4 a, vint4 b)
 		{
-			return new vmask4((a.m[0] == b.m[0]) ? 1 : 0,
-						(a.m[1] == b.m[1]) ? 1 : 0,
-						(a.m[2] == b.m[2]) ? 1 : 0,
-						(a.m[3] == b.m[3]) ? 1 : 0);
+			return new vmask4(a.m[0] == b.m[0],
+								a.m[1] == b.m[1],
+								a.m[2] == b.m[2],
+								a.m[3] == b.m[3]);
 		}
 
 		/**
@@ -520,10 +530,26 @@ namespace ASTCEnc
 		*/
 		public static vmask4 operator!=(vint4 a, vint4 b)
 		{
-			return new vmask4((a.m[0] != b.m[0]) ? 1 : 0,
-						(a.m[1] != b.m[1]) ? 1 : 0,
-						(a.m[2] != b.m[2]) ? 1 : 0,
-						(a.m[3] != b.m[3]) ? 1 : 0);
+			return new vmask4(a.m[0] != b.m[0],
+								a.m[1] != b.m[1],
+								a.m[2] != b.m[2],
+								a.m[3] != b.m[3]);
+		}
+
+		public static vmask4 operator<(vint4 a, vint4 b)
+		{
+			return new vmask4(a.m[0] < b.m[0],
+						a.m[1] < b.m[1],
+						a.m[2] < b.m[2],
+						a.m[3] < b.m[3]);
+		}
+
+		public static vmask4 operator>(vint4 a, vint4 b)
+		{
+			return new vmask4(a.m[0] > b.m[0],
+						a.m[1] > b.m[1],
+						a.m[2] > b.m[2],
+						a.m[3] > b.m[3]);
 		}
 
 		/**
