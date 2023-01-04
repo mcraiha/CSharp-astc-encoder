@@ -221,21 +221,17 @@ namespace ASTCEnc
 
 	public struct PartitionMetrics
 	{
-		public vfloat4 range_sq;
-		public vfloat4 error_weight;
-		public vfloat4 icolor_scale;
-		public vfloat4 color_scale;
 		public vfloat4 avg;
 		public vfloat4 dir;
 	};
 
 	public struct PartitionLines3
 	{
-		public line3 uncor_line;
-		public line3 samec_line;
+		public Line3 uncor_line;
+		public Line3 samec_line;
 
-		public processed_line3 uncor_pline;
-		public processed_line3 samec_pline;
+		public ProcessedLine3 uncor_pline;
+		public ProcessedLine3 samec_pline;
 
 		public float uncor_line_len;
 		public float samec_line_len;
@@ -248,12 +244,15 @@ namespace ASTCEnc
 		public ushort partition_index;
 		public byte[] partition_texel_count = new byte[Constants.BLOCK_MAX_PARTITIONS];
 		public byte[] partition_of_texel = new byte[Constants.BLOCK_MAX_TEXELS];
-		public byte[,] texels_of_partition = new byte[Constants.BLOCK_MAX_PARTITIONS, Constants.BLOCK_MAX_TEXELS];
+		public byte[][] texels_of_partition = new byte[Constants.BLOCK_MAX_PARTITIONS][];
 
 
 		public PartitionInfo()
 		{
-			
+			for (int i = 0; i < Constants.BLOCK_MAX_PARTITIONS; i++)
+			{
+				texels_of_partition[i] = new byte[Constants.BLOCK_MAX_TEXELS];
+			}
 		}
 	}
 
@@ -463,6 +462,7 @@ namespace ASTCEnc
 		public vfloat4 data_min;
 		public vfloat4 data_mean;
 		public vfloat4 data_max;
+		public vfloat4 channel_weight;
 		public bool grayscale;
 
 		public byte[] rgb_lns = new byte[Constants.BLOCK_MAX_TEXELS];      // 1 if RGB data are being treated as LNS
@@ -472,7 +472,7 @@ namespace ASTCEnc
 		public uint ypos;
 		public uint zpos;
 
-		public ImageBlock(bool notUsed)
+		public ImageBlock()
 		{
 			
 		}

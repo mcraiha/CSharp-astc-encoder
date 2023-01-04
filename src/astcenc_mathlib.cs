@@ -107,21 +107,18 @@ namespace ASTCEnc
 	{
 		public Float2 amod;
 		public Float2 bs;
-		public Float2 bis;
 	};
 
 	public struct ProcessedLine3
 	{
 		public vfloat4 amod;
 		public vfloat4 bs;
-		public vfloat4 bis;
 	};
 
 	public struct ProcessedLine4
 	{
 		public vfloat4 amod;
 		public vfloat4 bs;
-		public vfloat4 bis;
 	};
 
 	public static class ASTCMath

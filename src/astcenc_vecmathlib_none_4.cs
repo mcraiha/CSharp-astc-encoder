@@ -362,6 +362,38 @@ namespace ASTCEnc
 			return new vfloat4(a) / b;
 		}
 
+		public static vmask4 operator<(vfloat4 a, vfloat4 b)
+		{
+			return new vmask4(a.m[0] < b.m[0],
+						a.m[1] < b.m[1],
+						a.m[2] < b.m[2],
+						a.m[3] < b.m[3]);
+		}
+
+		public static vmask4 operator>(vfloat4 a, vfloat4 b)
+		{
+			return new vmask4(a.m[0] > b.m[0],
+						a.m[1] > b.m[1],
+						a.m[2] > b.m[2],
+						a.m[3] > b.m[3]);
+		}
+
+		public static vmask4 operator<=(vfloat4 a, vfloat4 b)
+		{
+			return new vmask4(a.m[0] <= b.m[0],
+						a.m[1] <= b.m[1],
+						a.m[2] <= b.m[2],
+						a.m[3] <= b.m[3]);
+		}
+
+		public static vmask4 operator>=(vfloat4 a, vfloat4 b)
+		{
+			return new vmask4(a.m[0] >= b.m[0],
+						a.m[1] >= b.m[1],
+						a.m[2] >= b.m[2],
+						a.m[3] >= b.m[3]);
+		}
+
 		public static vfloat4 loada(float[] p, uint offset)
 		{
 			return new vfloat4(p[offset], p[offset + 1], p[offset + 2], p[offset + 3]);
