@@ -205,6 +205,22 @@ namespace ASTCEnc
 						(cond.m[3] & 0x80000000) == 1 ? b.m[3] : a.m[3]);
 		}
 
+		public static vfloat4 select_msb(vfloat4 a, vfloat4 b, vmask4 cond)
+		{
+			return new vfloat4((cond.m[0] & (int)(0x80000000)) ? b.m[0] : a.m[0],
+						(cond.m[1] & (int)(0x80000000)) ? b.m[1] : a.m[1],
+						(cond.m[2] & (int)(0x80000000)) ? b.m[2] : a.m[2],
+						(cond.m[3] & (int)(0x80000000)) ? b.m[3] : a.m[3]);
+		}
+
+		public static vfloat4 gatherf(float[] basef, vint4 indices)
+		{
+			return new vfloat4(basef[indices.m[0]],
+						basef[indices.m[1]],
+						basef[indices.m[2]],
+						basef[indices.m[3]]);
+		}
+
 		/**
 		* @brief Return the absolute value of the float vector.
 		*/
@@ -394,6 +410,8 @@ namespace ASTCEnc
 						a.m[3] >= b.m[3]);
 		}
 
+		
+
 		public static vfloat4 loada(float[] p, uint offset)
 		{
 			return new vfloat4(p[offset], p[offset + 1], p[offset + 2], p[offset + 3]);
@@ -512,7 +530,7 @@ namespace ASTCEnc
 		/**
 		* @brief The vector ...
 		*/
-		private readonly int[] m = new int[4];
+		public readonly int[] m = new int[4];
 
 		public static vint4 operator +(vint4 a, vint4 b)
 		{

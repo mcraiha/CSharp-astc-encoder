@@ -256,68 +256,60 @@ namespace ASTCEnc
 		}
 	}
 
-	/*
-	In ASTC, we don't necessarily provide a weight for every texel.
-	As such, for each block size, there are a number of patterns where some texels
-	have their weights computed as a weighted average of more than 1 weight.
-	As such, the codec uses a data structure that tells us: for each texel, which
-	weights it is a combination of for each weight, which texels it contributes to.
-	The decimation_table is this data structure.
-	*/
-	public struct DecimationTable
+	public struct DecimationInfo
 	{
-		// TODO: Make these byte values
-		public int texel_count;
-		public int weight_count;
-		public int weight_x;
-		public int weight_y;
-		public int weight_z;
+		/** @brief The total number of texels in the block. */
+		public byte texel_count;
 
-		public byte[] texel_weight_count;	// number of indices that go into the calculation for a texel
+		/** @brief The maximum number of stored weights that contribute to each texel, between 1 and 4. */
+		public byte max_texel_weight_count;
 
-		// The 4t and t4 tables are the same data, but transposed to allow optimal
-		// data access patterns depending on how we can unroll loops
-		public float[,] texel_weights_float_4t;	// the weight to assign to each weight
-		public byte[,] texel_weights_4t;	// the weights that go into a texel calculation
+		/** @brief The total number of weights stored. */
+		public byte weight_count;
 
-		public float[,] texel_weights_float_t4;	// the weight to assign to each weight
-		public byte[,] texel_weights_t4;	// the weights that go into a texel calculation
+		/** @brief The number of stored weights in the X dimension. */
+		public byte weight_x;
 
-		public byte[,] texel_weights_int_t4;	// the weight to assign to each weight
+		/** @brief The number of stored weights in the Y dimension. */
+		public byte weight_y;
 
-		public byte[] weight_texel_count;	// the number of texels that a given weight contributes to
-		public byte[,] weight_texel;	// the texels that the weight contributes to
-		public byte[,] weights_int;	// the weights that the weight contributes to a texel.
-		public float[,] weights_flt;	// the weights that the weight contributes to a texel.
+		/** @brief The number of stored weights in the Z dimension. */
+		public byte weight_z;
 
-		// folded data structures:
-		//  * texel_weights_texel[i][j] = texel_weights[weight_texel[i][j]];
-		//  * texel_weights_float_texel[i][j] = texel_weights_float[weight_texel[i][j]]
-		public byte[,,] texel_weights_texel;
-		public float[,,] texel_weights_float_texel;
+		/** @brief The number of stored weights that contribute to each texel, between 1 and 4. */
+		public byte[] texel_weight_count = new byte[Constants.BLOCK_MAX_TEXELS];
 
-		public DecimationTable(bool unused)
-		{
-			this.texel_count = 0;
-			this.weight_count = 0;
-			this.weight_x = 0;
-			this.weight_y = 0;
-			this.weight_z = 0;
+		/** @brief The weight index of the N weights that need to be interpolated for each texel. */
+		public uint8_t texel_weights_4t[4][Constants.BLOCK_MAX_TEXELS];
 
-			this.texel_weight_count = new byte[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weights_float_4t = new float[4, Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weights_4t = new byte[4, Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weights_float_t4 = new float[Constants.MAX_TEXELS_PER_BLOCK, 4];
-			this.texel_weights_t4 = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
-			this.texel_weights_int_t4 = new byte[Constants.MAX_TEXELS_PER_BLOCK, 4];
-			this.weight_texel_count = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
-			this.weight_texel = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
-			this.weights_int = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
-			this.weights_flt = new float[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weights_texel = new byte[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK, 4];
-			this.texel_weights_float_texel = new float[Constants.MAX_WEIGHTS_PER_BLOCK, Constants.MAX_TEXELS_PER_BLOCK, 4];
-		}
+		/** @brief The bilinear interpolation weighting of the N input weights for each texel, between 0 and 16. */
+		public uint8_t texel_weights_int_4t[4][Constants.BLOCK_MAX_TEXELS];
+
+		/** @brief The bilinear interpolation weighting of the N input weights for each texel, between 0 and 1. */
+		public float texel_weights_float_4t[4][Constants.BLOCK_MAX_TEXELS];
+
+		/** @brief The number of texels that each stored weight contributes to. */
+		public uint8_t weight_texel_count[Constants.BLOCK_MAX_WEIGHTS];
+
+		/** @brief The list of weights that contribute to each texel. */
+		public uint8_t weight_texel[Constants.BLOCK_MAX_TEXELS][Constants.BLOCK_MAX_WEIGHTS];
+
+		/** @brief The list of weight indices that contribute to each texel. */
+		public float weights_flt[Constants.BLOCK_MAX_TEXELS][Constants.BLOCK_MAX_WEIGHTS];
+
+		/**
+		* @brief Folded structure for faster access:
+		*     texel_weights_texel[i][j][.] = texel_weights[.][weight_texel[i][j]]
+		*/
+		public uint8_t texel_weights_texel[Constants.BLOCK_MAX_WEIGHTS][Constants.BLOCK_MAX_TEXELS][4];
+
+		/**
+		* @brief Folded structure for faster access:
+		*     texel_weights_float_texel[i][j][.] = texel_weights_float[.][weight_texel[i][j]]
+		*/
+		public float texel_weights_float_texel[Constants.BLOCK_MAX_WEIGHTS][Constants.BLOCK_MAX_TEXELS][4];
 	}
+
 
 	/**
 	* @brief Metadata for single block mode for a specific BSD.
@@ -487,7 +479,7 @@ namespace ASTCEnc
 
 		public vfloat4 Texel3(int index)
 		{
-			return new vfloat3(data_r[index],
+			return vfloat4.vfloat3(data_r[index],
 		               data_g[index],
 		               data_b[index]);
 		}

@@ -317,7 +317,7 @@ namespace ASTCEnc
 			}
 		}
 
-		void compute_avgs_and_dirs_4_comp(PartitionInfo pi, ImageBlock blk, PartitionMetrics[] pm) 
+		public static void compute_avgs_and_dirs_4_comp(PartitionInfo pi, ImageBlock blk, PartitionMetrics[] pm) 
 		{
 			int partition_count = pi.partition_count;
 			//promise(partition_count > 0);
@@ -328,7 +328,7 @@ namespace ASTCEnc
 
 			for (int partition = 0; partition < partition_count; partition++)
 			{
-				const uint8_t *texel_indexes = pi.texels_of_partition[partition];
+				byte[] texel_indexes = pi.texels_of_partition[partition];
 				uint texel_count = pi.partition_texel_count[partition];
 				//promise(texel_count > 0);
 
@@ -384,7 +384,7 @@ namespace ASTCEnc
 			}
 		}
 
-		void compute_avgs_and_dirs_3_comp(PartitionInfo pi, ImageBlock blk, uint omitted_component, PartitionMetrics[] pm) 
+		public static void compute_avgs_and_dirs_3_comp(PartitionInfo pi, ImageBlock blk, uint omitted_component, PartitionMetrics[] pm) 
 		{
 			// Pre-compute partition_averages
 			vfloat4[] partition_averages = new vfloat4[Constants.BLOCK_MAX_PARTITIONS];
@@ -438,7 +438,7 @@ namespace ASTCEnc
 
 			for (uint partition = 0; partition < partition_count; partition++)
 			{
-				const uint8_t *texel_indexes = pi.texels_of_partition[partition];
+				byte[] texel_indexes = pi.texels_of_partition[partition];
 				uint texel_count = pi.partition_texel_count[partition];
 				//promise(texel_count > 0);
 
@@ -453,7 +453,7 @@ namespace ASTCEnc
 				{
 					uint iwt = texel_indexes[i];
 
-					vfloat4 texel_datum = vfloat3(data_vr[iwt],
+					vfloat4 texel_datum = vfloat4.vfloat3(data_vr[iwt],
 												data_vg[iwt],
 												data_vb[iwt]);
 					texel_datum = texel_datum - average;
@@ -488,7 +488,7 @@ namespace ASTCEnc
 			}
 		}
 
-		void compute_avgs_and_dirs_3_comp_rgb(PartitionInfo pi, ImageBlock blk, PartitionMetrics[] pm) 
+		public static void compute_avgs_and_dirs_3_comp_rgb(PartitionInfo pi, ImageBlock blk, PartitionMetrics[] pm) 
 		{
 			uint partition_count = pi.partition_count;
 			//promise(partition_count > 0);
@@ -499,7 +499,7 @@ namespace ASTCEnc
 
 			for (uint partition = 0; partition < partition_count; partition++)
 			{
-				const uint8_t *texel_indexes = pi.texels_of_partition[partition];
+				byte[] texel_indexes = pi.texels_of_partition[partition];
 				uint texel_count = pi.partition_texel_count[partition];
 				//promise(texel_count > 0);
 
@@ -547,7 +547,7 @@ namespace ASTCEnc
 			}
 		}
 
-		void compute_avgs_and_dirs_2_comp(PartitionInfo pi, ImageBlock blk, uint component1, uint component2, PartitionMetrics[] pm) 
+		public static void compute_avgs_and_dirs_2_comp(PartitionInfo pi, ImageBlock blk, uint component1, uint component2, PartitionMetrics[] pm) 
 		{
 			vfloat4 average;
 
@@ -583,7 +583,7 @@ namespace ASTCEnc
 
 			for (uint partition = 0; partition < partition_count; partition++)
 			{
-				const uint8_t *texel_indexes = pi.texels_of_partition[partition];
+				byte[] texel_indexes = pi.texels_of_partition[partition];
 				uint texel_count = pi.partition_texel_count[partition];
 				//promise(texel_count > 0);
 
@@ -594,7 +594,7 @@ namespace ASTCEnc
 					for (uint i = 0; i < texel_count; i++)
 					{
 						uint iwt = texel_indexes[i];
-						average += vfloat2(data_vr[iwt], data_vg[iwt]);
+						average += vfloat4.vfloat2(data_vr[iwt], data_vg[iwt]);
 					}
 
 					average = average / (float)(texel_count);
@@ -608,7 +608,7 @@ namespace ASTCEnc
 				for (uint i = 0; i < texel_count; i++)
 				{
 					uint iwt = texel_indexes[i];
-					vfloat4 texel_datum = vfloat2(data_vr[iwt], data_vg[iwt]);
+					vfloat4 texel_datum = vfloat4.vfloat2(data_vr[iwt], data_vg[iwt]);
 					texel_datum = texel_datum - average;
 
 					vfloat4 zero = vfloat4.zero();
@@ -634,7 +634,7 @@ namespace ASTCEnc
 		}
 
 		/* See header for documentation. */
-		void compute_error_squared_rgba(PartitionInfo pi, ImageBlock blk, ProcessedLine4[] uncor_plines, ProcessedLine4[] samec_plines, float[] uncor_lengths, float[] samec_lengths, out float uncor_error, out float samec_error) 
+		public static void compute_error_squared_rgba(PartitionInfo pi, ImageBlock blk, ProcessedLine4[] uncor_plines, ProcessedLine4[] samec_plines, float[] uncor_lengths, float[] samec_lengths, out float uncor_error, out float samec_error) 
 		{
 			uint partition_count = pi.partition_count;
 			//promise(partition_count > 0);
@@ -662,17 +662,17 @@ namespace ASTCEnc
 				vfloat l_uncor_bs0 = new vfloat(l_uncor.bs.lane(0));
 				vfloat l_uncor_bs1 = new vfloat(l_uncor.bs.lane(1));
 				vfloat l_uncor_bs2 = new vfloat(l_uncor.bs.lane(2));
-				vfloat l_uncor_bs3 = new vfloat(l_uncor.bs.lane<3>());
+				vfloat l_uncor_bs3 = new vfloat(l_uncor.bs.lane(3));
 
 				vfloat l_uncor_amod0 = new vfloat(l_uncor.amod.lane(0));
 				vfloat l_uncor_amod1 = new vfloat(l_uncor.amod.lane(1));
 				vfloat l_uncor_amod2 = new vfloat(l_uncor.amod.lane(2));
-				vfloat l_uncor_amod3 = new vfloat(l_uncor.amod.lane<3>());
+				vfloat l_uncor_amod3 = new vfloat(l_uncor.amod.lane(3));
 
 				vfloat l_samec_bs0 = new vfloat(l_samec.bs.lane(0));
 				vfloat l_samec_bs1 = new vfloat(l_samec.bs.lane(1));
 				vfloat l_samec_bs2 = new vfloat(l_samec.bs.lane(2));
-				vfloat l_samec_bs3 = new vfloat(l_samec.bs.lane<3>());
+				vfloat l_samec_bs3 = new vfloat(l_samec.bs.lane(3));
 
 				//assert(all(l_samec.amod == vfloat4(0.0f)));
 
@@ -685,7 +685,7 @@ namespace ASTCEnc
 				vfloat ew_r = new vfloat(blk.channel_weight.lane(0));
 				vfloat ew_g = new vfloat(blk.channel_weight.lane(1));
 				vfloat ew_b = new vfloat(blk.channel_weight.lane(2));
-				vfloat ew_a = new vfloat(blk.channel_weight.lane<3>());
+				vfloat ew_a = new vfloat(blk.channel_weight.lane(3));
 
 				// This implementation over-shoots, but this is safe as we initialize the texel_indexes
 				// array to extend the last value. This means min/max are not impacted, but we need to mask
@@ -696,18 +696,18 @@ namespace ASTCEnc
 					vmask mask = lane_ids < new vint((int)texel_count);
 					vint texel_idxs = new vint(texel_indexes, i);
 
-					vfloat data_r = gatherf(blk.data_r, texel_idxs);
-					vfloat data_g = gatherf(blk.data_g, texel_idxs);
-					vfloat data_b = gatherf(blk.data_b, texel_idxs);
-					vfloat data_a = gatherf(blk.data_a, texel_idxs);
+					vfloat data_r = vfloat.gatherf(blk.data_r, texel_idxs);
+					vfloat data_g = vfloat.gatherf(blk.data_g, texel_idxs);
+					vfloat data_b = vfloat.gatherf(blk.data_b, texel_idxs);
+					vfloat data_a = vfloat.gatherf(blk.data_a, texel_idxs);
 
 					vfloat uncor_param = (data_r * l_uncor_bs0)
 									+ (data_g * l_uncor_bs1)
 									+ (data_b * l_uncor_bs2)
 									+ (data_a * l_uncor_bs3);
 
-					uncor_loparamv = min(uncor_param, uncor_loparamv);
-					uncor_hiparamv = max(uncor_param, uncor_hiparamv);
+					uncor_loparamv = vfloat.min(uncor_param, uncor_loparamv);
+					uncor_hiparamv = vfloat.max(uncor_param, uncor_hiparamv);
 
 					vfloat uncor_dist0 = (l_uncor_amod0 - data_r)
 									+ (uncor_param * l_uncor_bs0);
@@ -723,7 +723,7 @@ namespace ASTCEnc
 									+ (ew_b * uncor_dist2 * uncor_dist2)
 									+ (ew_a * uncor_dist3 * uncor_dist3);
 
-					haccumulate(uncor_errorsumv, uncor_err, mask);
+					vfloatacc.haccumulate(uncor_errorsumv, uncor_err, mask);
 
 					// Process samechroma data
 					vfloat samec_param = (data_r * l_samec_bs0)
@@ -731,8 +731,8 @@ namespace ASTCEnc
 									+ (data_b * l_samec_bs2)
 									+ (data_a * l_samec_bs3);
 
-					samec_loparamv = min(samec_param, samec_loparamv);
-					samec_hiparamv = max(samec_param, samec_hiparamv);
+					samec_loparamv = vfloat4.min(samec_param, samec_loparamv);
+					samec_hiparamv = vfloat4.max(samec_param, samec_hiparamv);
 
 					vfloat samec_dist0 = samec_param * l_samec_bs0 - data_r;
 					vfloat samec_dist1 = samec_param * l_samec_bs1 - data_g;
@@ -749,11 +749,11 @@ namespace ASTCEnc
 					lane_ids += new vint(Constants.ASTCENC_SIMD_WIDTH);
 				}
 
-				uncor_loparam = hmin_s(uncor_loparamv);
-				uncor_hiparam = hmax_s(uncor_hiparamv);
+				uncor_loparam = vfloat4.hmin_s(uncor_loparamv);
+				uncor_hiparam = vfloat4.hmax_s(uncor_hiparamv);
 
-				samec_loparam = hmin_s(samec_loparamv);
-				samec_hiparam = hmax_s(samec_hiparamv);
+				samec_loparam = vfloat4.hmin_s(samec_loparamv);
+				samec_hiparam = vfloat4.hmax_s(samec_hiparamv);
 
 				float uncor_linelen = uncor_hiparam - uncor_loparam;
 				float samec_linelen = samec_hiparam - samec_loparam;
@@ -763,12 +763,12 @@ namespace ASTCEnc
 				samec_lengths[partition] = astc::max(samec_linelen, 1e-7f);
 			}
 
-			uncor_error = hadd_s(uncor_errorsumv);
-			samec_error = hadd_s(samec_errorsumv);
+			uncor_error = vfloat4.hadd_s(uncor_errorsumv);
+			samec_error = vfloat4.hadd_s(samec_errorsumv);
 		}
 
 		/* See header for documentation. */
-		void compute_error_squared_rgb(PartitionInfo pi, ImageBlock blk, PartitionLines3[] plines, out float uncor_error, out float samec_error) 
+		public static void compute_error_squared_rgb(PartitionInfo pi, ImageBlock blk, PartitionLines3[] plines, out float uncor_error, out float samec_error) 
 		{
 			uint partition_count = pi.partition_count;
 			//promise(partition_count > 0);
@@ -827,19 +827,19 @@ namespace ASTCEnc
 				vint lane_ids = vint.lane_id();
 				for (uint i = 0; i < texel_count; i += Constants.ASTCENC_SIMD_WIDTH)
 				{
-					vmask mask = lane_ids < vint(texel_count);
+					vmask mask = lane_ids < new vint((int)texel_count);
 					vint texel_idxs = new vint(texel_indexes, i);
 
-					vfloat data_r = gatherf(blk.data_r, texel_idxs);
-					vfloat data_g = gatherf(blk.data_g, texel_idxs);
-					vfloat data_b = gatherf(blk.data_b, texel_idxs);
+					vfloat data_r = vfloat.gatherf(blk.data_r, texel_idxs);
+					vfloat data_g = vfloat.gatherf(blk.data_g, texel_idxs);
+					vfloat data_b = vfloat.gatherf(blk.data_b, texel_idxs);
 
 					vfloat uncor_param = (data_r * l_uncor_bs0)
 									+ (data_g * l_uncor_bs1)
 									+ (data_b * l_uncor_bs2);
 
-					uncor_loparamv = min(uncor_param, uncor_loparamv);
-					uncor_hiparamv = max(uncor_param, uncor_hiparamv);
+					uncor_loparamv = vfloat.min(uncor_param, uncor_loparamv);
+					uncor_hiparamv = vfloat.max(uncor_param, uncor_hiparamv);
 
 					vfloat uncor_dist0 = (l_uncor_amod0 - data_r)
 									+ (uncor_param * l_uncor_bs0);
@@ -852,15 +852,15 @@ namespace ASTCEnc
 									+ (ew_g * uncor_dist1 * uncor_dist1)
 									+ (ew_b * uncor_dist2 * uncor_dist2);
 
-					haccumulate(uncor_errorsumv, uncor_err, mask);
+					vfloatacc.haccumulate(uncor_errorsumv, uncor_err, mask);
 
 					// Process samechroma data
 					vfloat samec_param = (data_r * l_samec_bs0)
 									+ (data_g * l_samec_bs1)
 									+ (data_b * l_samec_bs2);
 
-					samec_loparamv = min(samec_param, samec_loparamv);
-					samec_hiparamv = max(samec_param, samec_hiparamv);
+					samec_loparamv = vfloat.min(samec_param, samec_loparamv);
+					samec_hiparamv = vfloat.max(samec_param, samec_hiparamv);
 
 					vfloat samec_dist0 = samec_param * l_samec_bs0 - data_r;
 					vfloat samec_dist1 = samec_param * l_samec_bs1 - data_g;
@@ -870,16 +870,16 @@ namespace ASTCEnc
 									+ (ew_g * samec_dist1 * samec_dist1)
 									+ (ew_b * samec_dist2 * samec_dist2);
 
-					haccumulate(samec_errorsumv, samec_err, mask);
+					vfloat4.haccumulate(samec_errorsumv, samec_err, mask);
 
 					lane_ids += new vint(Constants.ASTCENC_SIMD_WIDTH);
 				}
 
-				uncor_loparam = hmin_s(uncor_loparamv);
-				uncor_hiparam = hmax_s(uncor_hiparamv);
+				uncor_loparam = vfloat4.hmin_s(uncor_loparamv);
+				uncor_hiparam = vfloat4.hmax_s(uncor_hiparamv);
 
-				samec_loparam = hmin_s(samec_loparamv);
-				samec_hiparam = hmax_s(samec_hiparamv);
+				samec_loparam = vfloat4.hmin_s(samec_loparamv);
+				samec_hiparam = vfloat4.hmax_s(samec_hiparamv);
 
 				float uncor_linelen = uncor_hiparam - uncor_loparam;
 				float samec_linelen = samec_hiparam - samec_loparam;
@@ -889,8 +889,8 @@ namespace ASTCEnc
 				pl.samec_line_len = astc::max(samec_linelen, 1e-7f);
 			}
 
-			uncor_error = hadd_s(uncor_errorsumv);
-			samec_error = hadd_s(samec_errorsumv);
+			uncor_error = vfloat4.hadd_s(uncor_errorsumv);
+			samec_error = vfloat4.hadd_s(samec_errorsumv);
 		}
 	}
 }
