@@ -280,34 +280,34 @@ namespace ASTCEnc
 		public byte[] texel_weight_count = new byte[Constants.BLOCK_MAX_TEXELS];
 
 		/** @brief The weight index of the N weights that need to be interpolated for each texel. */
-		public uint8_t texel_weights_4t[4][Constants.BLOCK_MAX_TEXELS];
+		public byte[,] texel_weights_4t = new byte[4, Constants.BLOCK_MAX_TEXELS];
 
 		/** @brief The bilinear interpolation weighting of the N input weights for each texel, between 0 and 16. */
-		public uint8_t texel_weights_int_4t[4][Constants.BLOCK_MAX_TEXELS];
+		public byte[,] texel_weights_int_4t = new byte[4, Constants.BLOCK_MAX_TEXELS];
 
 		/** @brief The bilinear interpolation weighting of the N input weights for each texel, between 0 and 1. */
-		public float texel_weights_float_4t[4][Constants.BLOCK_MAX_TEXELS];
+		public float[,] texel_weights_float_4t = new float[4, Constants.BLOCK_MAX_TEXELS];
 
 		/** @brief The number of texels that each stored weight contributes to. */
-		public uint8_t weight_texel_count[Constants.BLOCK_MAX_WEIGHTS];
+		public byte[] weight_texel_count = new byte[Constants.BLOCK_MAX_WEIGHTS];
 
 		/** @brief The list of weights that contribute to each texel. */
-		public uint8_t weight_texel[Constants.BLOCK_MAX_TEXELS][Constants.BLOCK_MAX_WEIGHTS];
+		public byte[,] weight_texel = new byte[Constants.BLOCK_MAX_TEXELS, Constants.BLOCK_MAX_WEIGHTS];
 
 		/** @brief The list of weight indices that contribute to each texel. */
-		public float weights_flt[Constants.BLOCK_MAX_TEXELS][Constants.BLOCK_MAX_WEIGHTS];
+		public float[,] weights_flt = new float[Constants.BLOCK_MAX_TEXELS, Constants.BLOCK_MAX_WEIGHTS];
 
 		/**
 		* @brief Folded structure for faster access:
 		*     texel_weights_texel[i][j][.] = texel_weights[.][weight_texel[i][j]]
 		*/
-		public uint8_t texel_weights_texel[Constants.BLOCK_MAX_WEIGHTS][Constants.BLOCK_MAX_TEXELS][4];
+		public byte[,,] texel_weights_texel = new byte[Constants.BLOCK_MAX_WEIGHTS, Constants.BLOCK_MAX_TEXELS, 4];
 
 		/**
 		* @brief Folded structure for faster access:
 		*     texel_weights_float_texel[i][j][.] = texel_weights_float[.][weight_texel[i][j]]
 		*/
-		public float texel_weights_float_texel[Constants.BLOCK_MAX_WEIGHTS][Constants.BLOCK_MAX_TEXELS][4];
+		public float[,,] texel_weights_float_texel = new float[Constants.BLOCK_MAX_WEIGHTS, Constants.BLOCK_MAX_TEXELS, 4];
 	}
 
 
@@ -379,46 +379,81 @@ namespace ASTCEnc
 	public struct BlockSizeDescriptor
 	{
 		/**< The block X dimension, in texels. */
-		public int xdim;
+		public byte xdim;
 
 		/**< The block Y dimension, in texels. */
-		public int ydim;
+		public byte ydim;
 
 		/**< The block Z dimension, in texels. */
-		public int zdim;
+		public byte zdim;
 
 		/**< The block total texel count. */
-		public int texel_count;
+		public byte texel_count;
 
 
-		/**< The number of stored decimation modes. */
-		public int decimation_mode_count;
+		/**
+		* @brief The number of stored decimation modes which are "always" modes.
+		*
+		* Always modes are stored at the start of the decimation_modes list.
+		*/
+		public uint decimation_mode_count_always;
+
+		/** @brief The number of stored decimation modes for selected encodings. */
+		public uint decimation_mode_count_selected;
+
+		/** @brief The number of stored decimation modes for any encoding. */
+		public uint decimation_mode_count_all;
+
+		/**
+		* @brief The number of stored block modes which are "always" modes.
+		*
+		* Always modes are stored at the start of the block_modes list.
+		*/
+		public uint block_mode_count_1plane_always;
+
+		/** @brief The number of stored block modes for active 1 plane encodings. */
+		public uint block_mode_count_1plane_selected;
+
+		/** @brief The number of stored block modes for active 1 and 2 plane encodings. */
+		public uint block_mode_count_1plane_2plane_selected;
+
+		/** @brief The number of stored block modes for any encoding. */
+		public uint block_mode_count_all;
+
+		/** @brief The number of selected partitionings for 1/2/3/4 partitionings. */
+		public uint[] partitioning_count_selected = new uint[Constants.BLOCK_MAX_PARTITIONS];
+
+		/** @brief The number of partitionings for 1/2/3/4 partitionings. */
+		public uint[] partitioning_count_all = new uint[Constants.BLOCK_MAX_PARTITIONS];
 
 		/**< The active decimation modes, stored in low indices. */
-		public DecimationMode[] decimation_modes;
+		public DecimationMode[] decimation_modes = new DecimationMode[Constants.WEIGHTS_MAX_DECIMATION_MODES];
 
 		/**< The active decimation tables, stored in low indices. */
-		public DecimationTable[] decimation_tables;
+		public DecimationInfo[] decimation_tables = new DecimationInfo[Constants.WEIGHTS_MAX_DECIMATION_MODES];
 
-
-		/**< The number of stored block modes. */
-		public int block_mode_count;
+		/** @brief The packed block mode array index, or @c BLOCK_BAD_BLOCK_MODE if not active. */
+		public ushort[] block_mode_packed_index = new ushort[Constants.WEIGHTS_MAX_BLOCK_MODES];
 
 		/**< The active block modes, stored in low indices. */
-		public BlockMode[] block_modes;
+		public BlockMode[] block_modes = new BlockMode[Constants.WEIGHTS_MAX_BLOCK_MODES];
 
-		/**< The block mode array index, or -1 if not valid in current config. */
-		public short[] block_mode_packed_index;
-
-
-		/**< The texel count for k-means partition selection. */
-		public int kmeans_texel_count;
-
-		/**< The active texels for k-means partition selection. */
-		public int[] kmeans_texels;
 
 		/**< The partion tables for all of the possible partitions. */
-		public PartitionInfo[] partitions;
+		public PartitionInfo[] partitionings = new PartitionInfo[(3 * Constants.BLOCK_MAX_PARTITIONINGS) + 1];
+
+		/**
+		* @brief The packed partition table array index, or @c BLOCK_BAD_PARTITIONING if not active.
+		*
+		* Indexed by partition_count - 2, containing 2, 3 and 4 partitions.
+		*/
+		public ushort[,] partitioning_packed_index = new ushort[3, Constants.BLOCK_MAX_PARTITIONINGS];
+
+		public byte[] kmeans_texels = new byte[Constants.BLOCK_MAX_KMEANS_TEXELS];
+
+		public ulong[,] coverage_bitmaps_2 = new ulong[Constants.BLOCK_MAX_PARTITIONINGS, 2];
+		public ulong[,] coverage_bitmaps_3 = new ulong[Constants.BLOCK_MAX_PARTITIONINGS, 3]; 
+		public ulong[,] coverage_bitmaps_4 = new ulong[Constants.BLOCK_MAX_PARTITIONINGS, 4]; 
 
 		public BlockSizeDescriptor(bool notUsed)
 		{
@@ -426,15 +461,53 @@ namespace ASTCEnc
 			this.ydim = 0;
 			this.zdim = 0;
 			this.texel_count = 0;
-			this.decimation_mode_count = 0;
-			this.decimation_modes = new DecimationMode[Constants.MAX_DECIMATION_MODES];
-			this.decimation_tables = new DecimationTable[Constants.MAX_DECIMATION_MODES];
-			this.block_mode_count = 0;
-			this.block_modes = new BlockMode[Constants.MAX_WEIGHT_MODES];
-			this.block_mode_packed_index = new short[Constants.MAX_WEIGHT_MODES];
-			this.kmeans_texel_count = 0;
-			this.kmeans_texels = new int[Constants.MAX_KMEANS_TEXELS];
-			this.partitions = new PartitionInfo[(3 * Constants.PARTITION_COUNT) + 1]
+		}
+
+		public BlockMode get_block_mode(uint block_mode)
+		{
+			uint packed_index = this.block_mode_packed_index[block_mode];
+			return this.block_modes[packed_index];
+		}
+
+		public DecimationMode get_decimation_mode(uint decimation_mode)
+		{
+			return this.decimation_modes[decimation_mode];
+		}
+
+		public DecimationInfo get_decimation_info(uint decimation_mode)
+		{
+			return this.decimation_tables[decimation_mode];
+		}
+
+		public PartitionInfo get_partition_table(uint partition_count)
+		{
+			if (partition_count == 1)
+			{
+				partition_count = 5;
+			}
+			uint index = (partition_count - 2) * Constants.BLOCK_MAX_PARTITIONINGS;
+			return this.partitionings[index];
+		}
+
+		public PartitionInfo get_partition_info(uint partition_count, uint index)
+		{
+			uint packed_index = 0;
+			if (partition_count >= 2)
+			{
+				packed_index = this.partitioning_packed_index[partition_count - 2, index];
+			}
+
+			//assert(packed_index != BLOCK_BAD_PARTITIONING && packed_index < this->partitioning_count_all[partition_count - 1]);
+			var result = get_partition_table(partition_count)[packed_index];
+			//assert(index == result.partition_index);
+			return result;
+		}
+
+		public PartitionInfo get_raw_partition_info(uint partition_count, uint packed_index)
+		{
+			//assert(packed_index != BLOCK_BAD_PARTITIONING && packed_index < this->partitioning_count_all[partition_count - 1]);
+			var result = get_partition_table(partition_count)[packed_index];
+			return result;
 		}
 	}
 
@@ -523,6 +596,22 @@ namespace ASTCEnc
 			this.texel_weight_g = new float[Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weight_b = new float[Constants.MAX_TEXELS_PER_BLOCK];
 			this.texel_weight_a = new float[Constants.MAX_TEXELS_PER_BLOCK];
+		}
+	}
+
+	public struct DtInitWorkingBuffers
+	{
+		public byte[] weight_count_of_texel = new byte[Constants.BLOCK_MAX_TEXELS];
+		public byte[,] grid_weights_of_texel = new byte[Constants.BLOCK_MAX_TEXELS, 4];
+		public byte[,] weights_of_texel = new byte[Constants.BLOCK_MAX_TEXELS, 4];
+
+		public byte[] texel_count_of_weight = new byte[Constants.BLOCK_MAX_WEIGHTS];
+		public byte[,] texels_of_weight = new byte[Constants.BLOCK_MAX_WEIGHTS, Constants.BLOCK_MAX_TEXELS];
+		public byte[,] texel_weights_of_weight = new byte[Constants.BLOCK_MAX_WEIGHTS, Constants.BLOCK_MAX_TEXELS];
+
+		public DtInitWorkingBuffers()
+		{
+
 		}
 	}
 

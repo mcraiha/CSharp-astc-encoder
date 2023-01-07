@@ -257,7 +257,7 @@ namespace ASTCEnc
             uint x_weights,
             uint y_weights,
             DecimationInfo di,
-            dt_init_working_buffers& wb
+            DtInitWorkingBuffers wb
         ) {
             uint texels_per_block = x_texels * y_texels;
             uint weights_per_block = x_weights * y_weights;
@@ -312,11 +312,11 @@ namespace ASTCEnc
                     {
                         if (weight[i] != 0)
                         {
-                            wb.grid_weights_of_texel[texel][wb.weight_count_of_texel[texel]] = (byte)(qweight[i]);
-                            wb.weights_of_texel[texel][wb.weight_count_of_texel[texel]] = (byte)(weight[i]);
+                            wb.grid_weights_of_texel[texel, wb.weight_count_of_texel[texel]] = (byte)(qweight[i]);
+                            wb.weights_of_texel[texel, wb.weight_count_of_texel[texel]] = (byte)(weight[i]);
                             wb.weight_count_of_texel[texel]++;
-                            wb.texels_of_weight[qweight[i]][wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
-                            wb.texel_weights_of_weight[qweight[i]][wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
+                            wb.texels_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
+                            wb.texel_weights_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
                             wb.texel_count_of_weight[qweight[i]]++;
                             max_texel_count_of_weight = astc::max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
                         }
@@ -332,17 +332,17 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < wb.weight_count_of_texel[i]; j++)
                 {
-                    di.texel_weights_int_4t[j][i] = wb.weights_of_texel[i][j];
-                    di.texel_weights_float_4t[j][i] = (float)(wb.weights_of_texel[i][j]) * (1.0f / WEIGHTS_TEXEL_SUM);
-                    di.texel_weights_4t[j][i] = wb.grid_weights_of_texel[i][j];
+                    di.texel_weights_int_4t[j, i] = wb.weights_of_texel[i, j];
+                    di.texel_weights_float_4t[j, i] = (float)(wb.weights_of_texel[i, j]) * (1.0f / Constants.WEIGHTS_TEXEL_SUM);
+                    di.texel_weights_4t[j, i] = wb.grid_weights_of_texel[i, j];
                 }
 
                 // Init all 4 entries so we can rely on zeros for vectorization
                 for (uint j = wb.weight_count_of_texel[i]; j < 4; j++)
                 {
-                    di.texel_weights_int_4t[j][i] = 0;
-                    di.texel_weights_float_4t[j][i] = 0.0f;
-                    di.texel_weights_4t[j][i] = 0;
+                    di.texel_weights_int_4t[j, i] = 0;
+                    di.texel_weights_float_4t[j, i] = 0.0f;
+                    di.texel_weights_4t[j, i] = 0;
                 }
             }
 
@@ -355,11 +355,11 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < texel_count_wt; j++)
                 {
-                    uint8_t texel = wb.texels_of_weight[i][j];
+                    byte texel = wb.texels_of_weight[i, j];
 
                     // Create transposed versions of these for better vectorization
-                    di.weight_texel[j][i] = texel;
-                    di.weights_flt[j][i] = (float)(wb.texel_weights_of_weight[i][j]);
+                    di.weight_texel[j, i] = texel;
+                    di.weights_flt[j, i] = (float)(wb.texel_weights_of_weight[i, j]);
 
                     // perform a layer of array unrolling. An aspect of this unrolling is that
                     // one of the texel-weight indexes is an identity-mapped index; we will use this
@@ -367,34 +367,34 @@ namespace ASTCEnc
                     int swap_idx = -1;
                     for (uint k = 0; k < 4; k++)
                     {
-                        byte dttw = di.texel_weights_4t[k][texel];
-                        float dttwf = di.texel_weights_float_4t[k][texel];
+                        byte dttw = di.texel_weights_4t[k, texel];
+                        float dttwf = di.texel_weights_float_4t[k, texel];
                         if (dttw == i && dttwf != 0.0f)
                         {
                             swap_idx = k;
                         }
-                        di.texel_weights_texel[i][j][k] = dttw;
-                        di.texel_weights_float_texel[i][j][k] = dttwf;
+                        di.texel_weights_texel[i, j, k] = dttw;
+                        di.texel_weights_float_texel[i, j, k] = dttwf;
                     }
 
                     if (swap_idx != 0)
                     {
-                        uint8_t vi = di.texel_weights_texel[i][j][0];
-                        float vf = di.texel_weights_float_texel[i][j][0];
-                        di.texel_weights_texel[i][j][0] = di.texel_weights_texel[i][j][swap_idx];
-                        di.texel_weights_float_texel[i][j][0] = di.texel_weights_float_texel[i][j][swap_idx];
-                        di.texel_weights_texel[i][j][swap_idx] = vi;
-                        di.texel_weights_float_texel[i][j][swap_idx] = vf;
+                        byte vi = di.texel_weights_texel[i, j, 0];
+                        float vf = di.texel_weights_float_texel[i, j, 0];
+                        di.texel_weights_texel[i, j, 0] = di.texel_weights_texel[i, j, swap_idx];
+                        di.texel_weights_float_texel[i, j, 0] = di.texel_weights_float_texel[i, j, swap_idx];
+                        di.texel_weights_texel[i, j, swap_idx] = vi;
+                        di.texel_weights_float_texel[i, j, swap_idx] = vf;
                     }
                 }
 
                 // Initialize array tail so we can over-fetch with SIMD later to avoid loop tails
                 // Match last texel in active lane in SIMD group, for better gathers
-                byte last_texel = di.weight_texel[texel_count_wt - 1][i];
+                byte last_texel = di.weight_texel[texel_count_wt - 1, i];
                 for (uint j = texel_count_wt; j < max_texel_count_of_weight; j++)
                 {
-                    di.weight_texel[j][i] = last_texel;
-                    di.weights_flt[j][i] = 0.0f;
+                    di.weight_texel[j, i] = last_texel;
+                    di.weights_flt[j, i] = 0.0f;
                 }
             }
 
@@ -406,16 +406,16 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < 4; j++)
                 {
-                    di.texel_weights_float_4t[j][i] = 0;
-                    di.texel_weights_4t[j][i] = 0;
-                    di.texel_weights_int_4t[j][i] = 0;
+                    di.texel_weights_float_4t[j, i] = 0;
+                    di.texel_weights_4t[j, i] = 0;
+                    di.texel_weights_int_4t[j, i] = 0;
                 }
             }
 
             // Initialize array tail so we can over-fetch with SIMD later to avoid loop tails
             // Match last texel in active lane in SIMD group, for better gathers
             uint last_texel_count_wt = wb.texel_count_of_weight[weights_per_block - 1];
-            byte last_texel = di.weight_texel[last_texel_count_wt - 1][weights_per_block - 1];
+            byte last_texel = di.weight_texel[last_texel_count_wt - 1, weights_per_block - 1];
 
             uint weights_per_block_simd = round_up_to_simd_multiple_vla(weights_per_block);
             for (uint i = weights_per_block; i < weights_per_block_simd; i++)
@@ -424,8 +424,8 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < max_texel_count_of_weight; j++)
                 {
-                    di.weight_texel[j][i] = last_texel;
-                    di.weights_flt[j][i] = 0.0f;
+                    di.weight_texel[j, i] = last_texel;
+                    di.weights_flt[j, i] = 0.0f;
                 }
             }
 
@@ -456,7 +456,7 @@ namespace ASTCEnc
             uint y_weights,
             uint z_weights,
             DecimationInfo di,
-            dt_init_working_buffers& wb
+            DtInitWorkingBuffers wb
         ) {
             uint texels_per_block = x_texels * y_texels * z_texels;
             uint weights_per_block = x_weights * y_weights * z_weights;
@@ -580,11 +580,11 @@ namespace ASTCEnc
                         {
                             if (weight[i] != 0)
                             {
-                                wb.grid_weights_of_texel[texel][wb.weight_count_of_texel[texel]] = (byte)(qweight[i]);
-                                wb.weights_of_texel[texel][wb.weight_count_of_texel[texel]] = (byte)(weight[i]);
+                                wb.grid_weights_of_texel[texel, wb.weight_count_of_texel[texel]] = (byte)(qweight[i]);
+                                wb.weights_of_texel[texel, wb.weight_count_of_texel[texel]] = (byte)(weight[i]);
                                 wb.weight_count_of_texel[texel]++;
-                                wb.texels_of_weight[qweight[i]][wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
-                                wb.texel_weights_of_weight[qweight[i]][wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
+                                wb.texels_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
+                                wb.texel_weights_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
                                 wb.texel_count_of_weight[qweight[i]]++;
                                 max_texel_count_of_weight = astc::max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
                             }
@@ -602,16 +602,16 @@ namespace ASTCEnc
                 // Init all 4 entries so we can rely on zeros for vectorization
                 for (uint j = 0; j < 4; j++)
                 {
-                    di.texel_weights_int_4t[j][i] = 0;
-                    di.texel_weights_float_4t[j][i] = 0.0f;
-                    di.texel_weights_4t[j][i] = 0;
+                    di.texel_weights_int_4t[j, i] = 0;
+                    di.texel_weights_float_4t[j, i] = 0.0f;
+                    di.texel_weights_4t[j, i] = 0;
                 }
 
                 for (uint j = 0; j < wb.weight_count_of_texel[i]; j++)
                 {
-                    di.texel_weights_int_4t[j][i] = wb.weights_of_texel[i][j];
-                    di.texel_weights_float_4t[j][i] = (float)(wb.weights_of_texel[i][j]) * (1.0f / WEIGHTS_TEXEL_SUM);
-                    di.texel_weights_4t[j][i] = wb.grid_weights_of_texel[i][j];
+                    di.texel_weights_int_4t[j, i] = wb.weights_of_texel[i, j];
+                    di.texel_weights_float_4t[j, i] = (float)(wb.weights_of_texel[i, j]) * (1.0f / Constants.WEIGHTS_TEXEL_SUM);
+                    di.texel_weights_4t[j, i] = wb.grid_weights_of_texel[i, j];
                 }
             }
 
@@ -624,11 +624,11 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < texel_count_wt; j++)
                 {
-                    uint texel = wb.texels_of_weight[i][j];
+                    uint texel = wb.texels_of_weight[i, j];
 
                     // Create transposed versions of these for better vectorization
-                    di.weight_texel[j][i] = (byte)(texel);
-                    di.weights_flt[j][i] = (float)(wb.texel_weights_of_weight[i][j]);
+                    di.weight_texel[j, i] = (byte)(texel);
+                    di.weights_flt[j, i] = (float)(wb.texel_weights_of_weight[i, j]);
 
                     // perform a layer of array unrolling. An aspect of this unrolling is that
                     // one of the texel-weight indexes is an identity-mapped index; we will use this
@@ -636,34 +636,34 @@ namespace ASTCEnc
                     int swap_idx = -1;
                     for (uint k = 0; k < 4; k++)
                     {
-                        byte dttw = di.texel_weights_4t[k][texel];
-                        float dttwf = di.texel_weights_float_4t[k][texel];
+                        byte dttw = di.texel_weights_4t[k, texel];
+                        float dttwf = di.texel_weights_float_4t[k, texel];
                         if (dttw == i && dttwf != 0.0f)
                         {
                             swap_idx = k;
                         }
-                        di.texel_weights_texel[i][j][k] = dttw;
-                        di.texel_weights_float_texel[i][j][k] = dttwf;
+                        di.texel_weights_texel[i, j, k] = dttw;
+                        di.texel_weights_float_texel[i, j, k] = dttwf;
                     }
 
                     if (swap_idx != 0)
                     {
-                        byte vi = di.texel_weights_texel[i][j][0];
-                        float vf = di.texel_weights_float_texel[i][j][0];
-                        di.texel_weights_texel[i][j][0] = di.texel_weights_texel[i][j][swap_idx];
-                        di.texel_weights_float_texel[i][j][0] = di.texel_weights_float_texel[i][j][swap_idx];
-                        di.texel_weights_texel[i][j][swap_idx] = vi;
-                        di.texel_weights_float_texel[i][j][swap_idx] = vf;
+                        byte vi = di.texel_weights_texel[i, j, 0];
+                        float vf = di.texel_weights_float_texel[i, j, 0];
+                        di.texel_weights_texel[i, j, 0] = di.texel_weights_texel[i, j, swap_idx];
+                        di.texel_weights_float_texel[i, j, 0] = di.texel_weights_float_texel[i, j, swap_idx];
+                        di.texel_weights_texel[i, j, swap_idx] = vi;
+                        di.texel_weights_float_texel[i, j, swap_idx] = vf;
                     }
                 }
 
                 // Initialize array tail so we can over-fetch with SIMD later to avoid loop tails
                 // Match last texel in active lane in SIMD group, for better gathers
-                byte last_texel = di.weight_texel[texel_count_wt - 1][i];
+                byte last_texel = di.weight_texel[texel_count_wt - 1, i];
                 for (uint j = texel_count_wt; j < max_texel_count_of_weight; j++)
                 {
-                    di.weight_texel[j][i] = last_texel;
-                    di.weights_flt[j][i] = 0.0f;
+                    di.weight_texel[j, i] = last_texel;
+                    di.weights_flt[j, i] = 0.0f;
                 }
             }
 
@@ -675,16 +675,16 @@ namespace ASTCEnc
 
                 for (uint j = 0; j < 4; j++)
                 {
-                    di.texel_weights_float_4t[j][i] = 0;
-                    di.texel_weights_4t[j][i] = 0;
-                    di.texel_weights_int_4t[j][i] = 0;
+                    di.texel_weights_float_4t[j, i] = 0;
+                    di.texel_weights_4t[j, i] = 0;
+                    di.texel_weights_int_4t[j, i] = 0;
                 }
             }
 
             // Initialize array tail so we can over-fetch with SIMD later to avoid loop tails
             // Match last texel in active lane in SIMD group, for better gathers
             int last_texel_count_wt = wb.texel_count_of_weight[weights_per_block - 1];
-            byte last_texel = di.weight_texel[last_texel_count_wt - 1][weights_per_block - 1];
+            byte last_texel = di.weight_texel[last_texel_count_wt - 1, weights_per_block - 1];
 
             uint weights_per_block_simd = round_up_to_simd_multiple_vla(weights_per_block);
             for (uint i = weights_per_block; i < weights_per_block_simd; i++)
@@ -693,8 +693,8 @@ namespace ASTCEnc
 
                 for (int j = 0; j < max_texel_count_of_weight; j++)
                 {
-                    di.weight_texel[j][i] = last_texel;
-                    di.weights_flt[j][i] = 0.0f;
+                    di.weight_texel[j, i] = last_texel;
+                    di.weights_flt[j, i] = 0.0f;
                 }
             }
 
@@ -713,12 +713,12 @@ namespace ASTCEnc
         *
         * @param[in,out] bsd   The block size descriptor to populate.
         */
-        static void assign_kmeans_texels(block_size_descriptor& bsd) 
+        static void assign_kmeans_texels(BlockSizeDescriptor bsd) 
         {
             // Use all texels for kmeans on a small block
             if (bsd.texel_count <= Constants.BLOCK_MAX_KMEANS_TEXELS)
             {
-                for (uint8_t i = 0; i < bsd.texel_count; i++)
+                for (byte i = 0; i < bsd.texel_count; i++)
                 {
                     bsd.kmeans_texels[i] = i;
                 }
@@ -727,7 +727,7 @@ namespace ASTCEnc
             }
 
             // Select a random subset of Constants.BLOCK_MAX_KMEANS_TEXELS for kmeans on a large block
-            uint64_t rng_state[2];
+            ulong[] rng_state = new ulong[2];
             astc::rand_init(rng_state);
 
             // Initialize array used for tracking used indices
@@ -767,8 +767,8 @@ namespace ASTCEnc
             uint y_texels,
             uint x_weights,
             uint y_weights,
-            block_size_descriptor& bsd,
-            dt_init_working_buffers& wb,
+            BlockSizeDescriptor bsd,
+            DtInitWorkingBuffers wb,
             uint index
         ) {
             uint weight_count = x_weights * y_weights;
@@ -801,8 +801,8 @@ namespace ASTCEnc
 
             // At least one of the two should be valid ...
             //assert(maxprec_1plane >= 0 || maxprec_2planes >= 0);
-            bsd.decimation_modes[index].maxprec_1plane = static_cast<int8_t>(maxprec_1plane);
-            bsd.decimation_modes[index].maxprec_2planes = static_cast<int8_t>(maxprec_2planes);
+            bsd.decimation_modes[index].maxprec_1plane = (sbyte)(maxprec_1plane);
+            bsd.decimation_modes[index].maxprec_2planes = (sbyte)(maxprec_2planes);
             bsd.decimation_modes[index].refprec_1_plane = 0;
             bsd.decimation_modes[index].refprec_2_planes = 0;
         }
@@ -821,14 +821,14 @@ namespace ASTCEnc
             uint y_texels,
             bool can_omit_modes,
             float mode_cutoff,
-            block_size_descriptor& bsd
+            BlockSizeDescriptor bsd
         ) {
             // Store a remap table for storing packed decimation modes.
             // Indexing uses [Y * 16 + X] and max size for each axis is 12.
             const uint MAX_DMI = 12 * 16 + 12;
             int[] decimation_mode_index = new int[MAX_DMI];
 
-            dt_init_working_buffers* wb = new dt_init_working_buffers;
+            DtInitWorkingBuffers wb = new DtInitWorkingBuffers();
 
             bsd.xdim = (byte)(x_texels);
             bsd.ydim = (byte)(y_texels);
@@ -886,7 +886,7 @@ namespace ASTCEnc
                     bool is_dual_plane;
                     uint quant_mode;
                     uint weight_bits;
-                    bool valid = decode_block_mode_2d(i, x_weights, y_weights, is_dual_plane, quant_mode, weight_bits);
+                    bool valid = decode_block_mode_2d(i, out x_weights, out y_weights, out is_dual_plane, out quant_mode, out weight_bits);
 
                     // Always skip invalid encodings for the current block size
                     if (!valid || (x_weights > x_texels) || (y_weights > y_texels))
@@ -949,15 +949,15 @@ namespace ASTCEnc
                         packed_dm_idx++;
                     }
 
-                    auto& bm = bsd.block_modes[packed_bm_idx];
+                    BlockMode bm = bsd.block_modes[packed_bm_idx];
 
                     bm.decimation_mode = (byte)(decimation_mode);
                     bm.quant_mode = (byte)(quant_mode);
                     bm.is_dual_plane = (byte)(is_dual_plane);
                     bm.weight_bits = (byte)(weight_bits);
-                    bm.mode_index = static_cast<uint16_t>(i);
+                    bm.mode_index = (ushort)(i);
 
-                    auto& dm = bsd.decimation_modes[decimation_mode];
+                    DecimationMode dm = bsd.decimation_modes[decimation_mode];
 
                     if (is_dual_plane)
                     {
@@ -968,7 +968,7 @@ namespace ASTCEnc
                         dm.set_ref_1_plane(bm.get_weight_quant_mode());
                     }
 
-                    bsd.block_mode_packed_index[i] = static_cast<uint16_t>(packed_bm_idx);
+                    bsd.block_mode_packed_index[i] = (ushort)(packed_bm_idx);
 
                     packed_bm_idx++;
                     bm_counts[j]++;
@@ -992,7 +992,7 @@ namespace ASTCEnc
         #endif
 
             // Ensure the end of the array contains valid data (should never get read)
-            for (uint i = bsd.decimation_mode_count_all; i < WEIGHTS_MAX_DECIMATION_MODES; i++)
+            for (uint i = bsd.decimation_mode_count_all; i < Constants.WEIGHTS_MAX_DECIMATION_MODES; i++)
             {
                 bsd.decimation_modes[i].maxprec_1plane = -1;
                 bsd.decimation_modes[i].maxprec_2planes = -1;
@@ -1002,8 +1002,6 @@ namespace ASTCEnc
 
             // Determine the texels to use for kmeans clustering.
             assign_kmeans_texels(bsd);
-
-            delete wb;
         }
 
         /**
@@ -1021,15 +1019,15 @@ namespace ASTCEnc
             uint x_texels,
             uint y_texels,
             uint z_texels,
-            block_size_descriptor& bsd
+            BlockSizeDescriptor bsd
         ) {
             // Store a remap table for storing packed decimation modes.
             // Indexing uses [Z * 64 + Y *  8 + X] and max size for each axis is 6.
-            static constexpr uint MAX_DMI = 6 * 64 + 6 * 8 + 6;
-            int decimation_mode_index[MAX_DMI];
+            const uint MAX_DMI = 6 * 64 + 6 * 8 + 6;
+            int[] decimation_mode_index = new int[MAX_DMI];
             uint decimation_mode_count = 0;
 
-            dt_init_working_buffers* wb = new dt_init_working_buffers;
+            DtInitWorkingBuffers wb = new DtInitWorkingBuffers();
 
             bsd.xdim = (byte)(x_texels);
             bsd.ydim = (byte)(y_texels);
@@ -1054,9 +1052,9 @@ namespace ASTCEnc
                             continue;
                         }
 
-                        decimation_info& di = bsd.decimation_tables[decimation_mode_count];
+                        DecimationInfo di = bsd.decimation_tables[decimation_mode_count];
                         decimation_mode_index[z_weights * 64 + y_weights * 8 + x_weights] = decimation_mode_count;
-                        init_decimation_info_3d(x_texels, y_texels, z_texels, x_weights, y_weights, z_weights, di, *wb);
+                        init_decimation_info_3d(x_texels, y_texels, z_texels, x_weights, y_weights, z_weights, di, wb);
 
                         int maxprec_1plane = -1;
                         int maxprec_2planes = -1;
@@ -1080,8 +1078,8 @@ namespace ASTCEnc
                             maxprec_2planes = -1;
                         }
 
-                        bsd.decimation_modes[decimation_mode_count].maxprec_1plane = static_cast<int8_t>(maxprec_1plane);
-                        bsd.decimation_modes[decimation_mode_count].maxprec_2planes = static_cast<int8_t>(maxprec_2planes);
+                        bsd.decimation_modes[decimation_mode_count].maxprec_1plane = (sbyte)(maxprec_1plane);
+                        bsd.decimation_modes[decimation_mode_count].maxprec_2planes = (sbyte)(maxprec_2planes);
                         bsd.decimation_modes[decimation_mode_count].refprec_1_plane = maxprec_1plane == -1 ? 0 : 0xFFFF;
                         bsd.decimation_modes[decimation_mode_count].refprec_2_planes = maxprec_2planes == -1 ? 0 : 0xFFFF;
                         decimation_mode_count++;
@@ -1090,7 +1088,7 @@ namespace ASTCEnc
             }
 
             // Ensure the end of the array contains valid data (should never get read)
-            for (uint i = decimation_mode_count; i < WEIGHTS_MAX_DECIMATION_MODES; i++)
+            for (uint i = decimation_mode_count; i < Constants.WEIGHTS_MAX_DECIMATION_MODES; i++)
             {
                 bsd.decimation_modes[i].maxprec_1plane = -1;
                 bsd.decimation_modes[i].maxprec_2planes = -1;
@@ -1133,7 +1131,7 @@ namespace ASTCEnc
                     uint quant_mode;
                     uint weight_bits;
 
-                    bool valid = decode_block_mode_3d(i, x_weights, y_weights, z_weights, is_dual_plane, quant_mode, weight_bits);
+                    bool valid = decode_block_mode_3d(i, out x_weights, out y_weights, out z_weights, out is_dual_plane, out quant_mode, out weight_bits);
                     // Skip invalid encodings
                     if (!valid || x_weights > x_texels || y_weights > y_texels || z_weights > z_texels)
                     {
@@ -1169,9 +1167,9 @@ namespace ASTCEnc
                     bsd.block_modes[packed_idx].quant_mode = (byte)(quant_mode);
                     bsd.block_modes[packed_idx].weight_bits = (byte)(weight_bits);
                     bsd.block_modes[packed_idx].is_dual_plane = (byte)(is_dual_plane);
-                    bsd.block_modes[packed_idx].mode_index = static_cast<uint16_t>(i);
+                    bsd.block_modes[packed_idx].mode_index = (ushort)(i);
 
-                    bsd.block_mode_packed_index[i] = static_cast<uint16_t>(packed_idx);
+                    bsd.block_mode_packed_index[i] = (ushort)(packed_idx);
                     bm_counts[j]++;
                     packed_idx++;
                 }
@@ -1194,7 +1192,7 @@ namespace ASTCEnc
             bool can_omit_modes,
             uint partition_count_cutoff,
             float mode_cutoff,
-            block_size_descriptor& bsd
+            BlockSizeDescriptor bsd
         ) {
             if (z_texels > 1)
             {
