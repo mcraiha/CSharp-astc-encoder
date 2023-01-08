@@ -132,7 +132,7 @@ namespace ASTCEnc
             quant_mode = (base_quant_mode - 2) + 6 * H;
             is_dual_plane = D != 0;
 
-            weight_bits = get_ise_sequence_bitcount(weight_count, static_cast<quant_method>(quant_mode));
+            weight_bits = get_ise_sequence_bitcount(weight_count, (QuantMethod)(quant_mode));
             return (weight_count <= Constants.BLOCK_MAX_WEIGHTS &&
                     weight_bits >= Constants.BLOCK_MIN_WEIGHT_BITS &&
                     weight_bits <= Constants.BLOCK_MAX_WEIGHT_BITS);
@@ -235,7 +235,7 @@ namespace ASTCEnc
             quant_mode = (base_quant_mode - 2) + 6 * H;
             is_dual_plane = D != 0;
 
-            weight_bits = get_ise_sequence_bitcount(weight_count, static_cast<quant_method>(quant_mode));
+            weight_bits = get_ise_sequence_bitcount(weight_count, (QuantMethod)(quant_mode));
             return (weight_count <= Constants.BLOCK_MAX_WEIGHTS &&
                     weight_bits >= Constants.BLOCK_MIN_WEIGHT_BITS &&
                     weight_bits <= Constants.BLOCK_MAX_WEIGHT_BITS);
@@ -742,7 +742,7 @@ namespace ASTCEnc
             while (arr_elements_set < Constants.BLOCK_MAX_KMEANS_TEXELS)
             {
                 byte texel = (byte)(astc::rand(rng_state));
-                texel = texel % bsd.texel_count;
+                texel = (byte)(texel % bsd.texel_count);
                 if (!seen[texel])
                 {
                     bsd.kmeans_texels[arr_elements_set++] = texel;
@@ -783,7 +783,7 @@ namespace ASTCEnc
             int maxprec_2planes = -1;
             for (int i = 0; i < 12; i++)
             {
-                uint bits_1plane = get_ise_sequence_bitcount(weight_count, static_cast<quant_method>(i));
+                uint bits_1plane = get_ise_sequence_bitcount(weight_count, (QuantMethod)(i));
                 if (bits_1plane >= Constants.BLOCK_MIN_WEIGHT_BITS && bits_1plane <= Constants.BLOCK_MAX_WEIGHT_BITS)
                 {
                     maxprec_1plane = i;
@@ -791,7 +791,7 @@ namespace ASTCEnc
 
                 if (try_2planes)
                 {
-                    uint bits_2planes = get_ise_sequence_bitcount(2 * weight_count, static_cast<quant_method>(i));
+                    uint bits_2planes = get_ise_sequence_bitcount(2 * weight_count, (QuantMethod)(i));
                     if (bits_2planes >= Constants.BLOCK_MIN_WEIGHT_BITS && bits_2planes <= Constants.BLOCK_MAX_WEIGHT_BITS)
                     {
                         maxprec_2planes = i;
@@ -869,7 +869,7 @@ namespace ASTCEnc
             //   - Pass 1 - keep selected single plane "non-always" block modes
             //   - Pass 2 - keep select dual plane block modes
             //   - Pass 3 - keep everything else that's legal
-            uint limit = can_omit_modes ? 3 : 4;
+            uint limit = can_omit_modes ? (uint)3 : (uint)4;
             for (uint j = 0; j < limit; j ++)
             {
                 for (uint i = 0; i < Constants.WEIGHTS_MAX_BLOCK_MODES; i++)
@@ -941,7 +941,7 @@ namespace ASTCEnc
                     int decimation_mode = decimation_mode_index[y_weights * 16 + x_weights];
                     if (decimation_mode < 0)
                     {
-                        construct_dt_entry_2d(x_texels, y_texels, x_weights, y_weights, bsd, *wb, packed_dm_idx);
+                        construct_dt_entry_2d(x_texels, y_texels, x_weights, y_weights, bsd, wb, packed_dm_idx);
                         decimation_mode_index[y_weights * 16 + x_weights] = packed_dm_idx;
                         decimation_mode = packed_dm_idx;
 
@@ -953,7 +953,7 @@ namespace ASTCEnc
 
                     bm.decimation_mode = (byte)(decimation_mode);
                     bm.quant_mode = (byte)(quant_mode);
-                    bm.is_dual_plane = (byte)(is_dual_plane);
+                    bm.is_dual_plane = is_dual_plane;
                     bm.weight_bits = (byte)(weight_bits);
                     bm.mode_index = (ushort)(i);
 
@@ -1060,13 +1060,13 @@ namespace ASTCEnc
                         int maxprec_2planes = -1;
                         for (uint i = 0; i < 12; i++)
                         {
-                            uint bits_1plane = get_ise_sequence_bitcount(weight_count, static_cast<quant_method>(i));
+                            uint bits_1plane = get_ise_sequence_bitcount(weight_count, (QuantMethod)(i));
                             if (bits_1plane >= Constants.BLOCK_MIN_WEIGHT_BITS && bits_1plane <= Constants.BLOCK_MAX_WEIGHT_BITS)
                             {
                                 maxprec_1plane = i;
                             }
 
-                            uint bits_2planes = get_ise_sequence_bitcount(2 * weight_count, static_cast<quant_method>(i));
+                            uint bits_2planes = get_ise_sequence_bitcount(2 * weight_count, (QuantMethod)(i));
                             if (bits_2planes >= Constants.BLOCK_MIN_WEIGHT_BITS && bits_2planes <= Constants.BLOCK_MAX_WEIGHT_BITS)
                             {
                                 maxprec_2planes = i;
@@ -1166,7 +1166,7 @@ namespace ASTCEnc
                     bsd.block_modes[packed_idx].decimation_mode = (byte)(decimation_mode);
                     bsd.block_modes[packed_idx].quant_mode = (byte)(quant_mode);
                     bsd.block_modes[packed_idx].weight_bits = (byte)(weight_bits);
-                    bsd.block_modes[packed_idx].is_dual_plane = (byte)(is_dual_plane);
+                    bsd.block_modes[packed_idx].is_dual_plane = is_dual_plane;
                     bsd.block_modes[packed_idx].mode_index = (ushort)(i);
 
                     bsd.block_mode_packed_index[i] = (ushort)(packed_idx);

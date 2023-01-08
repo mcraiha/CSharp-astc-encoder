@@ -132,6 +132,18 @@ namespace ASTCEnc
 			}
 		};
 
+		public static vint4 unquant_color(QuantMethod quant_level, vint4 inputq) 
+		{
+			byte[] unq = color_unquant_tables[quant_level - QuantMethod.QUANT_6];
+			return new vint4(unq[inputq.lane(0)], unq[inputq.lane(1)],
+	             unq[inputq.lane(2)], unq[inputq.lane(3)]);
+		}
+
+		public static byte unquant_color(QuantMethod quant_level, int value) 
+		{
+			return color_unquant_tables[quant_level - QuantMethod.QUANT_6][value];
+		}
+
 		static int rgb_delta_unpack(in int[] input, int quant_level, out vint4 output0, out vint4 output1) 
 		{
 			// unquantize the color endpoints

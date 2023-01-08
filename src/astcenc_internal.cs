@@ -316,21 +316,29 @@ namespace ASTCEnc
 	*/
 	public struct BlockMode
 	{
-		public sbyte decimation_mode;
-		public sbyte quant_mode;
-		public bool is_dual_plane;
-		public bool percentile_hit;
-		public bool percentile_always;
-		public short mode_index;
+		/** @brief The block mode index in the ASTC encoded form. */
+		public ushort mode_index;
 
-		public BlockMode(bool unused)
+		/** @brief The decimation mode index in the compressor reindexed list. */
+		public byte decimation_mode;
+
+		/** @brief The weight quantization used by this block mode. */
+		public byte quant_mode;
+
+		/** @brief The weight quantization used by this block mode. */
+		public byte weight_bits;
+
+		/** @brief Is a dual weight plane used by this block mode? */
+		public bool is_dual_plane;
+
+		/**
+		* @brief Get the weight quantization used by this block mode.
+		*
+		* @return The quantization level.
+		*/
+		public QuantMethod get_weight_quant_mode()
 		{
-			this.decimation_mode = 0;
-			this.quant_mode = 0;
-			this.is_dual_plane = false;
-			this.percentile_hit = false;
-			this.percentile_always = false;
-			this.mode_index = 0;
+			return (QuantMethod)(this.quant_mode);
 		}
 	}
 
@@ -339,17 +347,66 @@ namespace ASTCEnc
 	*/
 	public struct DecimationMode
 	{
+		/** @brief The max weight precision for 1 plane, or -1 if not supported. */
 		public sbyte maxprec_1plane;
-		public sbyte maxprec_2planes;
-		public bool percentile_hit;
-		public bool percentile_always;
 
-		public DecimationMode(bool unused)
+		/** @brief The max weight precision for 2 planes, or -1 if not supported. */
+		public sbyte maxprec_2planes;
+
+		/**
+		* @brief Bitvector indicating weight quant modes used by active 1 plane block modes.
+		*
+		* Bit 0 = QUANT_2, Bit 1 = QUANT_3, etc.
+		*/
+		public ushort refprec_1_plane;
+
+		/**
+		* @brief Bitvector indicating weight quant methods used by active 2 plane block modes.
+		*
+		* Bit 0 = QUANT_2, Bit 1 = QUANT_3, etc.
+		*/
+		public ushort refprec_2_planes;
+
+		/**
+		* @brief Set a 1 plane weight quant as active.
+		*
+		* @param weight_quant   The quant method to set.
+		*/
+		public void set_ref_1_plane(QuantMethod weight_quant)
 		{
-			this.maxprec_1plane = 0;
-			this.maxprec_2planes = 0;
-			this.percentile_hit = false;
-			this.percentile_always = false;
+			refprec_1_plane |= (1 << weight_quant);
+		}
+
+		/**
+		* @brief Test if this mode is active below a given 1 plane weight quant (inclusive).
+		*
+		* @param max_weight_quant   The max quant method to test.
+		*/
+		public bool is_ref_1_plane(QuantMethod max_weight_quant)
+		{
+			ushort mask = (ushort)((1 << (max_weight_quant + 1)) - 1);
+			return (refprec_1_plane & mask) != 0;
+		}
+
+		/**
+		* @brief Set a 2 plane weight quant as active.
+		*
+		* @param weight_quant   The quant method to set.
+		*/
+		public void set_ref_2_plane(QuantMethod weight_quant)
+		{
+			refprec_2_planes |= (ushort)(1 << weight_quant);
+		}
+
+		/**
+		* @brief Test if this mode is active below a given 2 plane weight quant (inclusive).
+		*
+		* @param max_weight_quant   The max quant method to test.
+		*/
+		public bool is_ref_2_plane(QuantMethod max_weight_quant)
+		{
+			ushort mask = (ushort)((1 << (max_weight_quant + 1)) - 1);
+			return (refprec_2_planes & mask) != 0;
 		}
 	}
 
