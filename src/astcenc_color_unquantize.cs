@@ -144,215 +144,277 @@ namespace ASTCEnc
 			return color_unquant_tables[quant_level - QuantMethod.QUANT_6][value];
 		}
 
-		static int rgb_delta_unpack(in int[] input, int quant_level, out vint4 output0, out vint4 output1) 
+		public static vint4 uncontract_color(vint4 input) 
 		{
-			// unquantize the color endpoints
-			int r0 = color_unquant_tables[quant_level][input[0]];
-			int g0 = color_unquant_tables[quant_level][input[2]];
-			int b0 = color_unquant_tables[quant_level][input[4]];
-
-			int r1 = color_unquant_tables[quant_level][input[1]];
-			int g1 = color_unquant_tables[quant_level][input[3]];
-			int b1 = color_unquant_tables[quant_level][input[5]];
-
-			// perform the bit-transfer procedure
-			r0 |= (r1 & 0x80) << 1;
-			g0 |= (g1 & 0x80) << 1;
-			b0 |= (b1 & 0x80) << 1;
-			r1 &= 0x7F;
-			g1 &= 0x7F;
-			b1 &= 0x7F;
-			if ((r1 & 0x40) == 1)
-				r1 -= 0x80;
-			if ((g1 & 0x40) == 1)
-				g1 -= 0x80;
-			if ((b1 & 0x40) == 1)
-				b1 -= 0x80;
-
-			r0 >>= 1;
-			g0 >>= 1;
-			b0 >>= 1;
-			r1 >>= 1;
-			g1 >>= 1;
-			b1 >>= 1;
-
-			int rgbsum = r1 + g1 + b1;
-
-			r1 += r0;
-			g1 += g0;
-			b1 += b0;
-
-			int retval;
-
-			int r0e, g0e, b0e;
-			int r1e, g1e, b1e;
-
-			if (rgbsum >= 0)
-			{
-				r0e = r0;
-				g0e = g0;
-				b0e = b0;
-
-				r1e = r1;
-				g1e = g1;
-				b1e = b1;
-
-				retval = 0;
-			}
-			else
-			{
-				r0e = (r1 + b1) >> 1;
-				g0e = (g1 + b1) >> 1;
-				b0e = b1;
-
-				r1e = (r0 + b0) >> 1;
-				g1e = (g0 + b0) >> 1;
-				b1e = b0;
-
-				retval = 1;
-			}
-
-			r0e = ASTCMath.clamp(r0e, 0, 255);
-			g0e = ASTCMath.clamp(g0e, 0, 255);
-			b0e = ASTCMath.clamp(b0e, 0, 255);
-
-			r1e = ASTCMath.clamp(r1e, 0, 255);
-			g1e = ASTCMath.clamp(g1e, 0, 255);
-			b1e = ASTCMath.clamp(b1e, 0, 255);
-
-			output0 = new vint4(r0e, g0e, b0e, 0xFF);
-			output1 = new vint4(r1e, g1e, b1e, 0xFF);
-
-			return retval;
+			vmask4 mask = new vmask(true, true, false, false);
+			vint4 bc0 = asr<1>(input + input.lane<2>());
+			return vint4.select(input, bc0, mask);
 		}
 
-		static int rgb_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int ri0b = color_unquant_tables[quant_level][input[0]];
-			int ri1b = color_unquant_tables[quant_level][input[1]];
-			int gi0b = color_unquant_tables[quant_level][input[2]];
-			int gi1b = color_unquant_tables[quant_level][input[3]];
-			int bi0b = color_unquant_tables[quant_level][input[4]];
-			int bi1b = color_unquant_tables[quant_level][input[5]];
+		/**
+		* @brief Unpack an LDR RGBA color that uses delta encoding.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      input1q       The raw quantized endpoint 1 color deltas.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgba_delta_unpack(
+			vint4 input0q,
+			vint4 input1q,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			// Unquantize color endpoints
+			vint4 input0 = unquant_color(quant_level, input0q);
+			vint4 input1 = unquant_color(quant_level, input1q);
 
-			if (ri0b + gi0b + bi0b > ri1b + gi1b + bi1b)
-			{
-				// blue-contraction
-				ri0b = (ri0b + bi0b) >> 1;
-				gi0b = (gi0b + bi0b) >> 1;
-				ri1b = (ri1b + bi1b) >> 1;
-				gi1b = (gi1b + bi1b) >> 1;
+			// Apply bit transfer
+			bit_transfer_signed(input1, input0);
 
-				output0 = new vint4(ri1b, gi1b, bi1b, 255);
-				output1 = new vint4(ri0b, gi0b, bi0b, 255);
-				return 1;
-			}
-			else
+			// Apply blue-uncontraction if needed
+			int rgb_sum = hadd_rgb_s(input1);
+			input1 = input1 + input0;
+			if (rgb_sum < 0)
 			{
-				output0 = new vint4(ri0b, gi0b, bi0b, 255);
-				output1 = new vint4(ri1b, gi1b, bi1b, 255);
-				return 0;
+				input0 = uncontract_color(input0);
+				input1 = uncontract_color(input1);
+				std::swap(input0, input1);
 			}
+
+			output0 = clamp(0, 255, input0);
+			output1 = clamp(0, 255, input1);
 		}
 
-		static void rgba_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int order = rgb_unpack(input, quant_level, out output0, out output1);
-			if (order == 0)
-			{
-				output0.set_lane(3, color_unquant_tables[quant_level][input[6]]);
-				output1.set_lane(3, color_unquant_tables[quant_level][input[7]]);
-			}
-			else
-			{
-				output0.set_lane(3, color_unquant_tables[quant_level][input[7]]);
-				output1.set_lane(3, color_unquant_tables[quant_level][input[6]]);
-			}
+		/**
+		* @brief Unpack an LDR RGB color that uses delta encoding.
+		*
+		* Output alpha set to 255.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      input1q       The raw quantized endpoint 1 color deltas.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgb_delta_unpack(
+			vint4 input0q,
+			vint4 input1q,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			rgba_delta_unpack(input0q, input1q, quant_level, out output0, out output1);
+			output0.set_lane(3, 255);
+			output1.set_lane(3, 255);
 		}
 
-		static void rgba_delta_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int a0 = color_unquant_tables[quant_level][input[6]];
-			int a1 = color_unquant_tables[quant_level][input[7]];
-			a0 |= (a1 & 0x80) << 1;
-			a1 &= 0x7F;
-			if ((a1 & 0x40) == 1)
-				a1 -= 0x80;
-			a0 >>= 1;
-			a1 >>= 1;
-			a1 += a0;
+		/**
+		* @brief Unpack an LDR RGBA color that uses direct encoding.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      input1q       The raw quantized endpoint 1 color.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgba_unpack(
+			vint4 input0q,
+			vint4 input1q,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			// Unquantize color endpoints
+			vint4 input0 = unquant_color(quant_level, input0q);
+			vint4 input1 = unquant_color(quant_level, input1q);
 
-			a1 = ASTCMath.clamp(a1, 0, 255);
-
-			int order = rgb_delta_unpack(input, quant_level, out output0, out output1);
-			if (order == 0)
+			// Apply blue-uncontraction if needed
+			if (hadd_rgb_s(input0) > hadd_rgb_s(input1))
 			{
-				output0.set_lane(3, a0);
-				output1.set_lane(3, a1);
+				input0 = uncontract_color(input0);
+				input1 = uncontract_color(input1);
+				std::swap(input0, input1);
 			}
-			else
-			{
-				output0.set_lane(3, a1);
-				output1.set_lane(3, a0);
-			}
+
+			output0 = input0;
+			output1 = input1;
 		}
 
-		static void rgb_scale_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int ir = color_unquant_tables[quant_level][input[0]];
-			int ig = color_unquant_tables[quant_level][input[1]];
-			int ib = color_unquant_tables[quant_level][input[2]];
-
-			int iscale = color_unquant_tables[quant_level][input[3]];
-
-			output1 = new vint4(ir, ig, ib, 255);
-			output0 = new vint4((ir * iscale) >> 8, (ig * iscale) >> 8, (ib * iscale) >> 8, 255);
+		/**
+		* @brief Unpack an LDR RGB color that uses direct encoding.
+		*
+		* Output alpha set to 255.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      input1q       The raw quantized endpoint 1 color.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgb_unpack(
+			vint4 input0q,
+			vint4 input1q,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			rgba_unpack(input0q, input1q, quant_level, out output0, out output1);
+			output0.set_lane(3, 255);
+			output1.set_lane(3, 255);
 		}
 
-		static void rgb_scale_alpha_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			rgb_scale_unpack(input, quant_level, out output0, out output1);
-			output0.set_lane(3, color_unquant_tables[quant_level][input[4]]);
-			output1.set_lane(3, color_unquant_tables[quant_level][input[5]]);
+		/**
+		* @brief Unpack an LDR RGBA color that uses scaled encoding.
+		*
+		* Note only the RGB channels use the scaled encoding, alpha uses direct.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      alpha1q       The raw quantized endpoint 1 alpha value.
+		* @param      scaleq        The raw quantized scale.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgb_scale_alpha_unpack(
+			vint4 input0q,
+			byte alpha1q,
+			byte scaleq,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			// Unquantize color endpoints
+			vint4 input = unquant_color(quant_level, input0q);
+			byte alpha1 = unquant_color(quant_level, alpha1q);
+			byte scale = unquant_color(quant_level, scaleq);
+
+			output1 = input;
+			output1.set_lane(3, alpha1);
+
+			output0 = asr<8>(input * scale);
+			output0.set_lane(3, input.lane(3));
 		}
 
-		static void luminance_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int lum0 = color_unquant_tables[quant_level][input[0]];
-			int lum1 = color_unquant_tables[quant_level][input[1]];
+		/**
+		* @brief Unpack an LDR RGB color that uses scaled encoding.
+		*
+		* Output alpha is 255.
+		*
+		* @param      input0q       The raw quantized endpoint 0 color.
+		* @param      scaleq        The raw quantized scale.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void rgb_scale_unpack(
+			vint4 input0q,
+			int scaleq,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			vint4 input = unquant_color(quant_level, input0q);
+			int scale = unquant_color(quant_level, scaleq);
+
+			output1 = input;
+			output1.set_lane(3, 255);
+
+			output0 = asr<8>(input * scale);
+			output0.set_lane(3, 255);
+		}
+
+		/**
+		* @brief Unpack an LDR L color that uses direct encoding.
+		*
+		* Output alpha is 255.
+		*
+		* @param      input         The raw quantized endpoints.
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void luminance_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int lum0 = unquant_color(quant_level, input[0]);
+			int lum1 = unquant_color(quant_level, input[1]);
 			output0 = new vint4(lum0, lum0, lum0, 255);
 			output1 = new vint4(lum1, lum1, lum1, 255);
 		}
 
-		static void luminance_delta_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int v0 = color_unquant_tables[quant_level][input[0]];
-			int v1 = color_unquant_tables[quant_level][input[1]];
+		/**
+		* @brief Unpack an LDR L color that uses delta encoding.
+		*
+		* Output alpha is 255.
+		*
+		* @param      input         The raw quantized endpoints (L0, L1).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void luminance_delta_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int v0 = unquant_color(quant_level, input[0]);
+			int v1 = unquant_color(quant_level, input[1]);
 			int l0 = (v0 >> 2) | (v1 & 0xC0);
 			int l1 = l0 + (v1 & 0x3F);
 
-			l1 = Math.Min(l1, 255);
+			l1 = astc::min(l1, 255);
 
 			output0 = new vint4(l0, l0, l0, 255);
 			output1 = new vint4(l1, l1, l1, 255);
 		}
 
-		static void luminance_alpha_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int lum0 = color_unquant_tables[quant_level][input[0]];
-			int lum1 = color_unquant_tables[quant_level][input[1]];
-			int alpha0 = color_unquant_tables[quant_level][input[2]];
-			int alpha1 = color_unquant_tables[quant_level][input[3]];
+		/**
+		* @brief Unpack an LDR LA color that uses direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (L0, L1, A0, A1).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void luminance_alpha_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int lum0 =   unquant_color(quant_level, input[0]);
+			int lum1 =   unquant_color(quant_level, input[1]);
+			int alpha0 = unquant_color(quant_level, input[2]);
+			int alpha1 = unquant_color(quant_level, input[3]);
 			output0 = new vint4(lum0, lum0, lum0, alpha0);
 			output1 = new vint4(lum1, lum1, lum1, alpha1);
 		}
 
-		static void luminance_alpha_delta_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int lum0 = color_unquant_tables[quant_level][input[0]];
-			int lum1 = color_unquant_tables[quant_level][input[1]];
-			int alpha0 = color_unquant_tables[quant_level][input[2]];
-			int alpha1 = color_unquant_tables[quant_level][input[3]];
+		/**
+		* @brief Unpack an LDR LA color that uses delta encoding.
+		*
+		* @param      input         The raw quantized endpoints (L0, L1, A0, A1).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void luminance_alpha_delta_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int lum0 =   unquant_color(quant_level, input[0]);
+			int lum1 =   unquant_color(quant_level, input[1]);
+			int alpha0 = unquant_color(quant_level, input[2]);
+			int alpha1 = unquant_color(quant_level, input[3]);
 
 			lum0 |= (lum1 & 0x80) << 1;
 			alpha0 |= (alpha1 & 0x80) << 1;
@@ -377,13 +439,24 @@ namespace ASTCEnc
 			output1 = new vint4(lum1, lum1, lum1, alpha1);
 		}
 
-		// RGB-offset format
-		static void hdr_rgbo_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int v0 = color_unquant_tables[quant_level][input[0]];
-			int v1 = color_unquant_tables[quant_level][input[1]];
-			int v2 = color_unquant_tables[quant_level][input[2]];
-			int v3 = color_unquant_tables[quant_level][input[3]];
+		/**
+		* @brief Unpack an HDR RGB + offset encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_rgbo_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int v0 = unquant_color(quant_level, input[0]);
+			int v1 = unquant_color(quant_level, input[1]);
+			int v2 = unquant_color(quant_level, input[2]);
+			int v3 = unquant_color(quant_level, input[3]);
 
 			int modeval = ((v0 & 0xC0) >> 6) | (((v1 & 0x80) >> 7) << 2) | (((v2 & 0x80) >> 7) << 3);
 
@@ -462,7 +535,7 @@ namespace ASTCEnc
 				red |= bit5 << 10;
 
 			// expand to 12 bits.
-			int[] shamts = { 1, 1, 2, 3, 4, 5 };
+			int[] shamts = new int[] { 1, 1, 2, 3, 4, 5 };
 			int shamt = shamts[mode];
 			red <<= shamt;
 			green <<= shamt;
@@ -518,14 +591,27 @@ namespace ASTCEnc
 			output1 = new vint4(red << 4, green << 4, blue << 4, 0x7800);
 		}
 
-		static void hdr_rgb_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int v0 = color_unquant_tables[quant_level][input[0]];
-			int v1 = color_unquant_tables[quant_level][input[1]];
-			int v2 = color_unquant_tables[quant_level][input[2]];
-			int v3 = color_unquant_tables[quant_level][input[3]];
-			int v4 = color_unquant_tables[quant_level][input[4]];
-			int v5 = color_unquant_tables[quant_level][input[5]];
+		/**
+		* @brief Unpack an HDR RGB direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_rgb_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+
+			int v0 = unquant_color(quant_level, input[0]);
+			int v1 = unquant_color(quant_level, input[1]);
+			int v2 = unquant_color(quant_level, input[2]);
+			int v3 = unquant_color(quant_level, input[3]);
+			int v4 = unquant_color(quant_level, input[4]);
+			int v5 = unquant_color(quant_level, input[5]);
 
 			// extract all the fixed-placement bitfields
 			int modeval = ((v1 & 0x80) >> 7) | (((v2 & 0x80) >> 7) << 1) | (((v3 & 0x80) >> 7) << 2);
@@ -553,7 +639,6 @@ namespace ASTCEnc
 			// extract six variable-placement bits
 			int bit0 = (v2 >> 6) & 1;
 			int bit1 = (v3 >> 6) & 1;
-
 			int bit2 = (v4 >> 6) & 1;
 			int bit3 = (v5 >> 6) & 1;
 			int bit4 = (v4 >> 5) & 1;
@@ -585,23 +670,28 @@ namespace ASTCEnc
 				c |= bit2 << 7;
 
 			if ((ohmod & 0x5B) == 1)
+			{
 				b0 |= bit0 << 6;
-			if ((ohmod & 0x5B) == 1)
 				b1 |= bit1 << 6;
+			}
 
 			if ((ohmod & 0x12) == 1)
+			{
 				b0 |= bit2 << 7;
-			if ((ohmod & 0x12) == 1)
 				b1 |= bit3 << 7;
+			}
 
 			if ((ohmod & 0xAF) == 1)
+			{
 				d0 |= bit4 << 5;
-			if ((ohmod & 0xAF) == 1)
 				d1 |= bit5 << 5;
+			}
+
 			if ((ohmod & 0x5) == 1)
+			{
 				d0 |= bit2 << 6;
-			if ((ohmod & 0x5) == 1)
 				d1 |= bit3 << 6;
+			}
 
 			// sign-extend 'd0' and 'd1'
 			// note: this code assumes that signed right-shift actually sign-fills, not zero-fills.
@@ -669,20 +759,44 @@ namespace ASTCEnc
 			output1 = new vint4(red1 << 4, green1 << 4, blue1 << 4, 0x7800);
 		}
 
-		static void hdr_rgb_ldr_alpha_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			hdr_rgb_unpack3(input, quant_level, out output0, out output1);
+		/**
+		* @brief Unpack an HDR RGB + LDR A direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_rgb_ldr_alpha_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			hdr_rgb_unpack(input, quant_level, out output0, out output1);
 
-			int v6 = color_unquant_tables[quant_level][input[6]];
-			int v7 = color_unquant_tables[quant_level][input[7]];
+			int v6 = unquant_color(quant_level, input[6]);
+			int v7 = unquant_color(quant_level, input[7]);
 			output0.set_lane(3, v6);
 			output1.set_lane(3, v7);
 		}
 
-		static void hdr_luminance_small_range_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int v0 = color_unquant_tables[quant_level][input[0]];
-			int v1 = color_unquant_tables[quant_level][input[1]];
+		/**
+		* @brief Unpack an HDR L (small range) direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_luminance_small_range_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int v0 = unquant_color(quant_level, input[0]);
+			int v1 = unquant_color(quant_level, input[1]);
 
 			int y0, y1;
 			if ((v0 & 0x80) == 1)
@@ -704,10 +818,22 @@ namespace ASTCEnc
 			output1 = new vint4(y1 << 4, y1 << 4, y1 << 4, 0x7800);
 		}
 
-		static void hdr_luminance_large_range_unpack(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			int v0 = color_unquant_tables[quant_level][input[0]];
-			int v1 = color_unquant_tables[quant_level][input[1]];
+		/**
+		* @brief Unpack an HDR L (large range) direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_luminance_large_range_unpack(
+			byte[]  input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			int v0 = unquant_color(quant_level, input[0]);
+			int v1 = unquant_color(quant_level, input[1]);
 
 			int y0, y1;
 			if (v1 >= v0)
@@ -720,14 +846,28 @@ namespace ASTCEnc
 				y0 = (v1 << 4) + 8;
 				y1 = (v0 << 4) - 8;
 			}
+
 			output0 = new vint4(y0 << 4, y0 << 4, y0 << 4, 0x7800);
 			output1 = new vint4(y1 << 4, y1 << 4, y1 << 4, 0x7800);
 		}
 
-		static void hdr_alpha_unpack(int[] input, int quant_level, out int output0, out int output1) 
-		{
-			int v6 = color_unquant_tables[quant_level][input[0]];
-			int v7 = color_unquant_tables[quant_level][input[1]];
+		/**
+		* @brief Unpack an HDR A direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_alpha_unpack(
+			byte[]  input,
+			QuantMethod quant_level,
+			out int output0,
+			out int output1
+		) {
+
+			int v6 = unquant_color(quant_level, input[0]);
+			int v7 = unquant_color(quant_level, input[1]);
 
 			int selector = ((v6 >> 7) & 1) | ((v7 >> 6) & 2);
 			v6 &= 0x7F;
@@ -760,189 +900,194 @@ namespace ASTCEnc
 			output1 <<= 4;
 		}
 
-		static void hdr_rgb_hdr_alpha_unpack3(int[] input, int quant_level, out vint4 output0, out vint4 output1) 
-		{
-			hdr_rgb_unpack3(input, quant_level, out output0, out output1);
+		/**
+		* @brief Unpack an HDR RGBA direct encoding.
+		*
+		* @param      input         The raw quantized endpoints (packed and modal).
+		* @param      quant_level   The quantization level to use.
+		* @param[out] output0       The unpacked and unquantized endpoint 0 color.
+		* @param[out] output1       The unpacked and unquantized endpoint 1 color.
+		*/
+		static void hdr_rgb_hdr_alpha_unpack(
+			byte[] input,
+			QuantMethod quant_level,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			hdr_rgb_unpack(input, quant_level, out output0, out output1);
 
 			int alpha0, alpha1;
 			hdr_alpha_unpack(input + 6, quant_level, out alpha0, out alpha1);
 
-			output0.set_lane(3, lpha0);
+			output0.set_lane(3, alpha0);
 			output1.set_lane(3, alpha1);
 		}
 
-		void unpack_color_endpoints(ASTCEncProfile decode_mode, EndpointFormats format, int quant_level, int[] input, out int rgb_hdr, out int alpha_hdr, out int nan_endpoint, out vint4 output0, out vint4 output1) 
-		{
-			nan_endpoint = 0;
+		/* See header for documentation. */
+		void unpack_color_endpoints(
+			ASTCEncProfile decode_mode,
+			EndpointFormats format,
+			QuantMethod quant_level,
+			byte[]  input,
+			out bool rgb_hdr,
+			out bool alpha_hdr,
+			out vint4 output0,
+			out vint4 output1
+		) {
+			// Assume no NaNs and LDR endpoints unless set later
+			rgb_hdr = false;
+			alpha_hdr = false;
 
-			// TODO: Make format the correct enum type
+			bool alpha_hdr_default = false;
+
 			switch (format)
 			{
 			case EndpointFormats.FMT_LUMINANCE:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
 				luminance_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_LUMINANCE_DELTA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
 				luminance_delta_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_HDR_LUMINANCE_SMALL_RANGE:
-				rgb_hdr = 1;
-				alpha_hdr = -1;
+				rgb_hdr = true;
+				alpha_hdr_default = true;
 				hdr_luminance_small_range_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_HDR_LUMINANCE_LARGE_RANGE:
-				rgb_hdr = 1;
-				alpha_hdr = -1;
+				rgb_hdr = true;
+				alpha_hdr_default = true;
 				hdr_luminance_large_range_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_LUMINANCE_ALPHA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
 				luminance_alpha_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_LUMINANCE_ALPHA_DELTA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
 				luminance_alpha_delta_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_RGB_SCALE:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgb_scale_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[1], input[2], 0);
+					byte scale = input[3];
+					rgb_scale_unpack(input0q, scale, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_RGB_SCALE_ALPHA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgb_scale_alpha_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[1], input[2], input[4]);
+					byte alpha1q = input[5];
+					byte scaleq = input[3];
+					rgb_scale_alpha_unpack(input0q, alpha1q, scaleq, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_HDR_RGB_SCALE:
-				rgb_hdr = 1;
-				alpha_hdr = -1;
-				hdr_rgbo_unpack3(input, quant_level, out output0, out output1);
+				rgb_hdr = true;
+				alpha_hdr_default = true;
+				hdr_rgbo_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_RGB:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgb_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[2], input[4], 0);
+					vint4 input1q = new vint4(input[1], input[3], input[5], 0);
+					rgb_unpack(input0q, input1q, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_RGB_DELTA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgb_delta_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[2], input[4], 0);
+					vint4 input1q = new vint4(input[1], input[3], input[5], 0);
+					rgb_delta_unpack(input0q, input1q, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_HDR_RGB:
-				rgb_hdr = 1;
-				alpha_hdr = -1;
-				hdr_rgb_unpack3(input, quant_level, out output0, out output1);
+				rgb_hdr = true;
+				alpha_hdr_default = true;
+				hdr_rgb_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_RGBA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgba_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[2], input[4], input[6]);
+					vint4 input1q = new vint4(input[1], input[3], input[5], input[7]);
+					rgba_unpack(input0q, input1q, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_RGBA_DELTA:
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				rgba_delta_unpack(input, quant_level, out output0, out output1);
+				{
+					vint4 input0q = new vint4(input[0], input[2], input[4], input[6]);
+					vint4 input1q = new vint4(input[1], input[3], input[5], input[7]);
+					rgba_delta_unpack(input0q, input1q, quant_level, out output0, out output1);
+				}
 				break;
 
 			case EndpointFormats.FMT_HDR_RGB_LDR_ALPHA:
-				rgb_hdr = 1;
-				alpha_hdr = 0;
-				hdr_rgb_ldr_alpha_unpack3(input, quant_level, out output0, out output1);
+				rgb_hdr = true;
+				hdr_rgb_ldr_alpha_unpack(input, quant_level, out output0, out output1);
 				break;
 
 			case EndpointFormats.FMT_HDR_RGBA:
-				rgb_hdr = 1;
-				alpha_hdr = 1;
-				hdr_rgb_hdr_alpha_unpack3(input, quant_level, out output0, out output1);
+				rgb_hdr = true;
+				alpha_hdr = true;
+				hdr_rgb_hdr_alpha_unpack(input, quant_level, out output0, out output1);
 				break;
 			}
 
-			if (alpha_hdr == -1)
+			// Assign a correct default alpha
+			if (alpha_hdr_default)
 			{
 				if (decode_mode == ASTCEncProfile.ASTCENC_PRF_HDR)
 				{
 					output0.set_lane(3, 0x7800);
 					output1.set_lane(3, 0x7800);
-					alpha_hdr = 1;
+					alpha_hdr = true;
 				}
 				else
 				{
 					output0.set_lane(3, 0x00FF);
 					output1.set_lane(3, 0x00FF);
-					alpha_hdr = 0;
+					alpha_hdr = false;
 				}
 			}
 
-			switch (decode_mode)
+			vint4 ldr_scale = new vint4(257);
+			vint4 hdr_scale = new vint4(1);
+			vint4 output_scale = ldr_scale;
+
+			// An LDR profile image
+			if ((decode_mode == ASTCEncProfile.ASTCENC_PRF_LDR) ||
+				(decode_mode == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB))
 			{
-			case ASTCEncProfile.ASTCENC_PRF_LDR_SRGB:
-				if (rgb_hdr == 1)
+				// Also matches HDR alpha, as cannot have HDR alpha without HDR RGB
+				if (rgb_hdr == true)
 				{
 					output0 = new vint4(0xFF00, 0x0000, 0xFF00, 0xFF00);
 					output1 = new vint4(0xFF00, 0x0000, 0xFF00, 0xFF00);
-				}
-				else
-				{
-					output0 = output0 * 257;
-					output1 = output1 * 257;
-				}
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				break;
+					output_scale = hdr_scale;
 
-			case ASTCEncProfile.ASTCENC_PRF_LDR:
-				if (rgb_hdr == 1)
-				{
-					output0 = new vint4(0xFFFF);
-					output1 = new vint4(0xFFFF);
-					nan_endpoint = 1;
+					rgb_hdr = false;
+					alpha_hdr = false;
 				}
-				else
-				{
-					output0 = output0 * 257;
-					output1 = output1 * 257;
-				}
-				rgb_hdr = 0;
-				alpha_hdr = 0;
-				break;
-
-			case ASTCEncProfile.ASTCENC_PRF_HDR_RGB_LDR_A:
-			case ASTCEncProfile.ASTCENC_PRF_HDR:
-				if (rgb_hdr == 0)
-				{
-					output0.set_lane(0, output0.lane(0) * 257);
-					output0.set_lane(1, output0.lane(1) * 257);
-					output0.set_lane(2, output0.lane(2) * 257);
-
-					output1.set_lane(0, output1.lane(0) * 257);
-					output1.set_lane(1, output1.lane(1) * 257);
-					output1.set_lane(2, output1.lane(2) * 257);
-				}
-				if (alpha_hdr == 0)
-				{
-					output0.set_lane(3, output0.lane(3) * 257);
-					output1.set_lane(3, output1.lane(3) * 257);
-				}
-				break;
 			}
+			// An HDR profile image
+			else
+			{
+				vmask4 hdr_lanes = new vmask4(rgb_hdr, rgb_hdr, rgb_hdr, alpha_hdr);
+				output_scale = vint4.select(ldr_scale, hdr_scale, hdr_lanes);
+			}
+
+			output0 = output0 * output_scale;
+			output1 = output1 * output_scale;
 		}
 	}
 }

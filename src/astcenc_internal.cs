@@ -76,40 +76,74 @@ namespace ASTCEnc
 		FMT_HDR_RGBA = 15
 	}
 
+	/**
+	* @brief A symbolic representation of a compressed block.
+	*
+	* The symbolic representation stores the unpacked content of a single
+	* @c physical_compressed_block, in a form which is much easier to access for
+	* the rest of the compressor code.
+	*/
 	public struct SymbolicCompressedBlock
 	{
-		public bool error_block;			// 1 marks error block, 0 marks non-error-block.
-		public int block_mode;				// 0 to 2047. Negative value marks constant-color block (-1: FP16, -2:UINT16)
-		public int partition_count;		// 1 to 4; Zero marks a constant-color block.
-		public int partition_index;		// 0 to 1023
-		public int[] color_formats;		// color format for each endpoint color pair.
-		public int color_formats_matched;	// color format for all endpoint pairs are matched.
-		public int color_quant_level;
-		public int plane2_color_component;	// color component for the secondary plane of weights
-		public int[,] color_values;	// quantized endpoint color pairs.
-		public int[] constant_color;		// constant-color, as FP16 or UINT16. Used for constant-color blocks only.
-		// Quantized and decimated weights. In the case of dual plane, the second
-		// index plane starts at weights[PLANE2_WEIGHTS_OFFSET]
-		public float errorval;             // The error of the current encoding
-		public byte[] weights;
+		/** @brief The block type, one of the @c SYM_BTYPE_* constants. */
+		public byte block_type;
 
-		public SymbolicCompressedBlock(bool unused)
+		/** @brief The number of partitions; valid for @c NONCONST blocks. */
+		public byte partition_count;
+
+		/** @brief Non-zero if the color formats matched; valid for @c NONCONST blocks. */
+		public byte color_formats_matched;
+
+		/** @brief The plane 2 color component, or -1 if single plane; valid for @c NONCONST blocks. */
+		public sbyte plane2_component;
+
+		/** @brief The block mode; valid for @c NONCONST blocks. */
+		public ushort block_mode;
+
+		/** @brief The partition index; valid for @c NONCONST blocks if 2 or more partitions. */
+		public ushort partition_index;
+
+		/** @brief The endpoint color formats for each partition; valid for @c NONCONST blocks. */
+		public byte[] color_formats = new byte[Constants.BLOCK_MAX_PARTITIONS];
+
+		/** @brief The endpoint color quant mode; valid for @c NONCONST blocks. */
+		public QuantMethod quant_mode;
+
+		/** @brief The error of the current encoding; valid for @c NONCONST blocks. */
+		public float errorval;
+
+
+		/** @brief The constant color; valid for @c CONST blocks. */
+		public int[] constant_color = new int[Constants.BLOCK_MAX_COMPONENTS];
+
+		/** @brief The quantized endpoint color pairs; valid for @c NONCONST blocks. */
+		public byte[,] color_values = new byte[Constants.BLOCK_MAX_PARTITIONS, 8];
+
+		/** @brief The quantized and decimated weights.
+		*
+		* Weights are stored in the 0-64 unpacked range allowing them to be used
+		* directly in encoding passes without per-use unpacking. Packing happens
+		* when converting to/from the physical bitstream encoding.
+		*
+		* If dual plane, the second plane starts at @c weights[WEIGHTS_PLANE2_OFFSET].
+		*/
+		public byte[] weights = new byte[Constants.BLOCK_MAX_WEIGHTS];
+
+		
+
+		public SymbolicCompressedBlock()
 		{
-			this.error_block = false;
-			this.block_mode = 0;
-			this.partition_count = 0;
-			this.partition_index = 0;
+			
+		}
 
-			this.color_formats = new int[4];
-			this.color_formats_matched = 0;
-			this.color_quant_level = 0;
-
-			this.plane2_color_component = 0;
-			this.color_values = new int[4, 12];
-			this.constant_color = new int[4];
-
-			this.errorval = 0.0f;
-			this.weights = new byte[Constants.MAX_WEIGHTS_PER_BLOCK];
+		/**
+		* @brief Get the weight quantization used by this block mode.
+		*
+		* @return The quantization level.
+		*/
+		public QuantMethod get_color_quant_mode()
+		{
+			return this.quant_mode;
 		}
 	}
 

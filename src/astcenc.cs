@@ -96,14 +96,12 @@ namespace ASTCEnc
 	/**
 	* @brief The config structure.
 	*
-	* This structure will initially be populated by a call to astcenc_config_init,
-	* but power users may modify it before calling astcenc_context_alloc. See
-	* astcenccli_toplevel_help.cpp for full user documentation of the power-user
-	* settings.
+	* This structure will initially be populated by a call to astcenc_config_init, but power users may
+	* modify it before calling astcenc_context_alloc. See astcenccli_toplevel_help.cpp for full user
+	* documentation of the power-user settings.
 	*
-	* Note for any settings which are associated with a specific color channel,
-	* the value in the config applies to the channel that exists after any
-	* compression data swizzle is applied.
+	* Note for any settings which are associated with a specific color component, the value in the
+	* config applies to the component that exists after any compression data swizzle is applied.
 	*/
 	public struct ASTCEncConfig 
 	{
@@ -122,71 +120,57 @@ namespace ASTCEnc
 		/** @brief The ASTC block size Z dimension. */
 		public uint block_z;
 
-		/** @brief The size of the texel kernel for error weighting (-v). */
-		public uint v_rgba_radius;
-
-		/** @brief The mean and stdev channel mix for error weighting (-v). */
-		public float v_rgba_mean_stdev_mix;
-
-		/** @brief The texel RGB power for error weighting (-v). */
-		public float v_rgb_power;
-
-		/** @brief The texel RGB base weight for error weighting (-v). */
-		public float v_rgb_base;
-
-		/** @brief The texel RGB mean weight for error weighting (-v). */
-		public float v_rgb_mean;
-
-		/** @brief The texel RGB stdev for error weighting (-v). */
-		public float v_rgb_stdev;
-
-		/** @brief The texel A power for error weighting (-va). */
-		public float v_a_power;
-
-		/** @brief The texel A base weight for error weighting (-va). */
-		public float v_a_base;
-
-		/** @brief The texel A mean weight for error weighting (-va). */
-		public float v_a_mean;
-
-		/** @brief The texel A stdev for error weighting (-va). */
-		public float v_a_stdev;
-
-		/** @brief The red channel weight scale for error weighting (-cw). */
+		/** @brief The red component weight scale for error weighting (-cw). */
 		public float cw_r_weight;
 
-		/** @brief The green channel weight scale for error weighting (-cw). */
+		/** @brief The green component weight scale for error weighting (-cw). */
 		public float cw_g_weight;
 
-		/** @brief The blue channel weight scale for error weighting (-cw). */
+		/** @brief The blue component weight scale for error weighting (-cw). */
 		public float cw_b_weight;
 
-		/** @brief The alpha channel weight scale for error weighting (-cw). */
+		/** @brief The alpha component weight scale for error weighting (-cw). */
 		public float cw_a_weight;
 
 		/**
 		* @brief The radius for any alpha-weight scaling (-a).
 		*
-		* It is recommended that this is set to 1 when using FLG_USE_ALPHA_WEIGHT
-		* on a texture that will be sampled using linear texture filtering to
-		* minimize color bleed out of transparent texels that are adjcent to
-		* non-transparent texels.
+		* It is recommended that this is set to 1 when using FLG_USE_ALPHA_WEIGHT on a texture that
+		* will be sampled using linear texture filtering to minimize color bleed out of transparent
+		* texels that are adjacent to non-transparent texels.
 		*/
 		public uint a_scale_radius;
 
-		/**
-		* @brief The additional weight for block edge texels (-b).
-		*
-		* This is generic tool for reducing artefacts visible on block changes.
-		*/
-		public float b_deblock_weight;
+		/** @brief The RGBM scale factor for the shared multiplier (-rgbm). */
+		public float rgbm_m_scale;
 
 		/**
-		* @brief The maximum number of partitions searched (-partitionlimit).
+		* @brief The maximum number of partitions searched (-partitioncountlimit).
+		*
+		* Valid values are between 1 and 4.
+		*/
+		public uint tune_partition_count_limit;
+
+		/**
+		* @brief The maximum number of partitions searched (-2partitionindexlimit).
 		*
 		* Valid values are between 1 and 1024.
 		*/
-		public uint tune_partition_limit;
+		public uint tune_2partition_index_limit;
+
+		/**
+		* @brief The maximum number of partitions searched (-3partitionindexlimit).
+		*
+		* Valid values are between 1 and 1024.
+		*/
+		public uint tune_3partition_index_limit;
+
+		/**
+		* @brief The maximum number of partitions searched (-4partitionindexlimit).
+		*
+		* Valid values are between 1 and 1024.
+		*/
+		public uint tune_4partition_index_limit;
 
 		/**
 		* @brief The maximum centile for block modes searched (-blockmodelimit).
@@ -211,6 +195,27 @@ namespace ASTCEnc
 		public uint tune_candidate_limit;
 
 		/**
+		* @brief The number of trial partitionings per search (-2partitioncandidatelimit).
+		*
+		* Valid values are between 1 and TUNE_MAX_PARTITIIONING_CANDIDATES.
+		*/
+		public uint tune_2partitioning_candidate_limit;
+
+		/**
+		* @brief The number of trial partitionings per search (-3partitioncandidatelimit).
+		*
+		* Valid values are between 1 and TUNE_MAX_PARTITIIONING_CANDIDATES.
+		*/
+		public uint tune_3partitioning_candidate_limit;
+
+		/**
+		* @brief The number of trial partitionings per search (-4partitioncandidatelimit).
+		*
+		* Valid values are between 1 and TUNE_MAX_PARTITIIONING_CANDIDATES.
+		*/
+		public uint tune_4partitioning_candidate_limit;
+
+		/**
 		* @brief The dB threshold for stopping block search (-dblimit).
 		*
 		* This option is ineffective for HDR textures.
@@ -220,40 +225,44 @@ namespace ASTCEnc
 		/**
 		* @brief The amount of overshoot needed to early-out mode 0 fast path.
 		*
-		* We have a fast-path for mode 0 (1 partition, 1 plane) which uses only
-		* essential block modes as an initital search. This can short-cut
-		* compression for simple blocks, but to avoid shortcutting too much we
-		* force this to overshoot the MSE threshold needed to hit the block-local
-		* db_limit e.g. 1.0 = no overshoot, 2.0 = need half the error to trigger.
+		* We have a fast-path for mode 0 (1 partition, 1 plane) which uses only essential block modes
+		* as an initial search. This can short-cut compression for simple blocks, but to avoid
+		* short-cutting too much we force this to overshoot the MSE threshold needed to hit the
+		* block-local db_limit e.g. 1.0 = no overshoot, 2.0 = need half the error to trigger.
 		*/
 		public float tune_mode0_mse_overshoot;
 
 		/**
 		* @brief The amount of overshoot needed to early-out refinement.
 		*
-		* The codec will refine block candidates iteratively to improve the
-		* encoding, based on the @c tune_refinement_limit count. Earlier
-		* implementations will use all refinement iterations, even if the target
-		* threshold is reached. This tuning parameter allows an early out, but
-		* with an overshoot MSE threshold. Setting this to 1.0 will early-out as
-		* soon as the target is hit, but does reduce image quality vs the
-		* default behavior of over-refinement.
+		* The codec will refine block candidates iteratively to improve the encoding, based on the
+		* @c tune_refinement_limit count. Earlier implementations will use all refinement iterations,
+		* even if the target threshold is reached. This tuning parameter allows an early out, but with
+		* an overshoot MSE threshold. Setting this to 1.0 will early-out as soon as the target is hit,
+		* but does reduce image quality vs the default behavior of over-refinement.
 		*/
 		public float tune_refinement_mse_overshoot;
 
 		/**
-		* @brief The threshold for skipping 3+ partitions (-partitionearlylimit).
+		* @brief The threshold for skipping 3.1/4.1 trials (-2partitionlimitfactor).
 		*
-		* This option is ineffective for normal maps.
+		* This option is further scaled for normal maps, so it skips less often.
 		*/
-		public float tune_partition_early_out_limit;
+		public float tune_2_partition_early_out_limit_factor;
 
 		/**
-		* @brief The threshold for skipping 2 weight planess (-planecorlimit).
+		* @brief The threshold for skipping 4.1 trials (-3partitionlimitfactor).
+		*
+		* This option is further scaled for normal maps, so it skips less often.
+		*/
+		public float tune_3_partition_early_out_limit_factor;
+
+		/**
+		* @brief The threshold for skipping two weight planes (-2planelimitcorrelation).
 		*
 		* This option is ineffective for normal maps.
 		*/
-		public float tune_two_plane_early_out_limit;
+		public float tune_2_plane_early_out_limit_correlation;
 	}
 
 	/**
