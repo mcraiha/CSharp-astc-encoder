@@ -375,6 +375,9 @@ namespace ASTCEnc
 		/** @brief The throrough quality search preset. */
 		public const float ASTCENC_PRE_THOROUGH = 98.0f;
 
+		/** @brief The thorough quality search preset. */
+		public const float ASTCENC_PRE_VERYTHOROUGH = 99.0f;
+
 		/** @brief The exhaustive, highest quality, search preset. */
 		public const float ASTCENC_PRE_EXHAUSTIVE = 100.0f;
 
@@ -436,11 +439,35 @@ namespace ASTCEnc
 		public const uint ASTCENC_FLG_SELF_DECOMPRESS_ONLY = 1 << 5;
 
 		/**
+		* @brief Enable RGBM map compression.
+		*
+		* Input data will be treated as HDR data that has been stored in an LDR RGBM-encoded wrapper
+		* format. Data must be preprocessed by the user to be in LDR RGBM format before calling the
+		* compression function, this flag is only used to control the use of RGBM-specific heuristics and
+		* error metrics.
+		*
+		* IMPORTANT: The ASTC format is prone to bad failure modes with unconstrained RGBM data; very small
+		* M values can round to zero due to quantization and result in black or white pixels. It is highly
+		* recommended that the minimum value of M used in the encoding is kept above a lower threshold (try
+		* 16 or 32). Applying this threshold reduces the number of very dark colors that can be
+		* represented, but is still higher precision than 8-bit LDR.
+		*
+		* When this flag is set the value of @c rgbm_m_scale in the context must be set to the RGBM scale
+		* factor used during reconstruction. This defaults to 5 when in RGBM mode.
+		*
+		* It is recommended that the value of @c cw_a_weight is set to twice the value of the multiplier
+		* scale, ensuring that the M value is accurately encoded. This defaults to 10 when in RGBM mode,
+		* matching the default scale factor.
+		*/
+		public const uint ASTCENC_FLG_MAP_RGBM             = 1 << 6;
+
+		/**
 		* @brief The bit mask of all valid flags.
 		*/
 		public const uint ASTCENC_ALL_FLAGS =
 									ASTCENC_FLG_MAP_NORMAL |
 									ASTCENC_FLG_MAP_MASK |
+									ASTCENC_FLG_MAP_RGBM |
 									ASTCENC_FLG_USE_ALPHA_WEIGHT |
 									ASTCENC_FLG_USE_PERCEPTUAL |
 									ASTCENC_FLG_DECOMPRESS_ONLY |

@@ -123,6 +123,31 @@ namespace ASTCEnc
 
 	public static class ASTCMath
 	{
+		/*public static T min<T>(T p, T q)
+		{
+			return p < q ? p : q;
+		}*/
+
+		public static uint min(uint p, uint q)
+		{
+			return p < q ? p : q;
+		}
+
+		public static float min(float p, float q)
+		{
+			return p < q ? p : q;
+		}
+
+		public static uint max(uint p, uint q)
+		{
+			return p > q ? p : q;
+		}
+
+		public static float max(float p, float q)
+		{
+			return p > q ? p : q;
+		}
+
 		/**
 		* @brief Clamp a value value between @c mn and @c mx.
 		*
