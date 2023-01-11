@@ -706,34 +706,38 @@ namespace ASTCEnc
 		}
 	}
 
-	// ***********************************************************
-	// functions pertaining to computing texel weights for a block
-	// ***********************************************************
+	/**
+	* @brief Data structure storing the color endpoints for a block.
+	*/
 	public struct Endpoints
 	{
-		public int partition_count;
-		public vfloat4[] endpt0;
-		public vfloat4[] endpt1;
+		public uint partition_count = default;
+		public vfloat4[] endpt0 = new vfloat4[Constants.BLOCK_MAX_PARTITIONS];
+		public vfloat4[] endpt1 = new vfloat4[Constants.BLOCK_MAX_PARTITIONS];
 
-		public Endpoints(bool notUsed)
+		public Endpoints()
 		{
-			this.partition_count = 0;
-			this.endpt0 = new vfloat4[4];
-			this.endpt1 = new vfloat4[4];
+
 		}
-	};
+	}
 
 	public struct EndpointsAndWeights
 	{
-		public Endpoints ep;
-		public float[] weights;
-		public float[] weight_error_scale;
+		/** @brief True if all active values in weight_error_scale are the same. */
+		public bool is_constant_weight_error_scale;
 
-		public EndpointsAndWeights(bool notUsed)
+		/** @brief The color endpoints. */
+		public Endpoints ep;
+
+		/** @brief The ideal weight for each texel; may be undecimated or decimated. */
+		public float[] weights = new float[Constants.BLOCK_MAX_TEXELS];
+
+		/** @brief The ideal weight error scaling for each texel; may be undecimated or decimated. */
+		public float[] weight_error_scale = new float[Constants.BLOCK_MAX_TEXELS];
+
+		public EndpointsAndWeights()
 		{
-			this.ep = new Endpoints(notUsed: true);
-			this.weights = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.weight_error_scale = new float[Constants.MAX_TEXELS_PER_BLOCK];
+
 		}
 	}
 
@@ -764,13 +768,147 @@ namespace ASTCEnc
 		}
 	}
 
-	public struct compress_symbolic_block_buffers
+	/**
+	* @brief Preallocated working buffers, allocated per thread during context creation.
+	*/
+	public struct compression_working_buffers
 	{
-		public ErrorWeightBlock ewb;
-		public CompressFixedPartitionBuffers planes;
+		/** @brief Ideal endpoints and weights for plane 1. */
+		public EndpointsAndWeights ei1;
+
+		/** @brief Ideal endpoints and weights for plane 2. */
+		public EndpointsAndWeights ei2;
+
+		/**
+		* @brief Decimated ideal weight values in the ~0-1 range.
+		*
+		* Note that values can be slightly below zero or higher than one due to
+		* endpoint extents being inside the ideal color representation.
+		*
+		* For two planes, second plane starts at @c WEIGHTS_PLANE2_OFFSET offsets.
+		*/
+		public float[] dec_weights_ideal = new float[Constants.WEIGHTS_MAX_DECIMATION_MODES * Constants.BLOCK_MAX_WEIGHTS];
+
+		/**
+		* @brief Decimated quantized weight values in the unquantized 0-64 range.
+		*
+		* For two planes, second plane starts at @c WEIGHTS_PLANE2_OFFSET offsets.
+		*/
+		public byte[] dec_weights_uquant = new byte[Constants.WEIGHTS_MAX_BLOCK_MODES * Constants.BLOCK_MAX_WEIGHTS];
+
+		/** @brief Error of the best encoding combination for each block mode. */
+		public float[] errors_of_best_combination = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The best color quant for each block mode. */
+		public byte[] best_quant_levels = new byte[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The best color quant for each block mode if modes are the same and we have spare bits. */
+		public byte[] best_quant_levels_mod = new byte[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The best endpoint format for each partition. */
+		public byte[,] best_ep_formats = new byte[Constants.WEIGHTS_MAX_BLOCK_MODES, Constants.BLOCK_MAX_PARTITIONS];
+
+		/** @brief The total bit storage needed for quantized weights for each block mode. */
+		public sbyte[] qwt_bitcounts = new sbyte[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The cumulative error for quantized weights for each block mode. */
+		public float[] qwt_errors = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The low weight value in plane 1 for each block mode. */
+		public float[] weight_low_value1 = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The high weight value in plane 1 for each block mode. */
+		public float[] weight_high_value1 = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The low weight value in plane 1 for each quant level and decimation mode. */
+		public float[,] weight_low_values1 = new float[Constants.WEIGHTS_MAX_DECIMATION_MODES, Constants.TUNE_MAX_ANGULAR_QUANT + 1];
+
+		/** @brief The high weight value in plane 1 for each quant level and decimation mode. */
+		public float[,] weight_high_values1 = new float[Constants.WEIGHTS_MAX_DECIMATION_MODES, Constants.TUNE_MAX_ANGULAR_QUANT + 1];
+
+		/** @brief The low weight value in plane 2 for each block mode. */
+		public float[] weight_low_value2 = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The high weight value in plane 2 for each block mode. */
+		public float[] weight_high_value2 = new float[Constants.WEIGHTS_MAX_BLOCK_MODES];
+
+		/** @brief The low weight value in plane 2 for each quant level and decimation mode. */
+		public float[,] weight_low_values2 = new float[Constants.WEIGHTS_MAX_DECIMATION_MODES, Constants.TUNE_MAX_ANGULAR_QUANT + 1];
+
+		/** @brief The high weight value in plane 2 for each quant level and decimation mode. */
+		public float[,] weight_high_values2 = new float[Constants.WEIGHTS_MAX_DECIMATION_MODES, Constants.TUNE_MAX_ANGULAR_QUANT + 1];
 	}
 
-	public struct astcenc_context
+	/**
+	* @brief Parameter structure for @c compute_pixel_region_variance().
+	*
+	* This function takes a structure to avoid spilling arguments to the stack on every function
+	* invocation, as there are a lot of parameters.
+	*/
+	public struct pixel_region_args
+	{
+		/** @brief The image to analyze. */
+		public ASTCEncImage img; 
+
+		/** @brief The component swizzle pattern. */
+		public ASTCEncSwizzle swz;
+
+		/** @brief Should the algorithm bother with Z axis processing? */
+		public bool have_z;
+
+		/** @brief The kernel radius for alpha processing. */
+		public uint alpha_kernel_radius;
+
+		/** @brief The X dimension of the working data to process. */
+		public uint size_x;
+
+		/** @brief The Y dimension of the working data to process. */
+		public uint size_y;
+
+		/** @brief The Z dimension of the working data to process. */
+		public uint size_z;
+
+		/** @brief The X position of first src and dst data in the data set. */
+		public uint offset_x;
+
+		/** @brief The Y position of first src and dst data in the data set. */
+		public uint offset_y;
+
+		/** @brief The Z position of first src and dst data in the data set. */
+		public uint offset_z;
+
+		/** @brief The working memory buffer. */
+		public vfloat4[] work_memory;
+	}
+
+	/**
+	* @brief Parameter structure for @c compute_averages_proc().
+	*/
+	public struct avg_args
+	{
+		/** @brief The arguments for the nested variance computation. */
+		public pixel_region_args arg;
+
+		/** @brief The image X dimensions. */
+		public uint img_size_x;
+
+		/** @brief The image Y dimensions. */
+		public uint img_size_y;
+
+		/** @brief The image Z dimensions. */
+		public uint img_size_z;
+
+		/** @brief The maximum working block dimensions in X and Y dimensions. */
+		public uint blk_size_xy;
+
+		/** @brief The maximum working block dimensions in Z dimensions. */
+		public uint blk_size_z;
+
+		/** @brief The working block memory size. */
+		public uint work_memory_size;
+	}
+
+	public struct astcenc_contexti
 	{
 		public ASTCEncConfig config;
 		public uint thread_count;
@@ -780,31 +918,14 @@ namespace ASTCEnc
 		// remain as they are small and it avoids littering the code with #ifdefs.
 		// The most significant contributors to large structure size are omitted.
 
-		// Regional average-and-variance information, initialized by
-		// compute_averages_and_variances() only if the astc encoder
-		// is requested to do error weighting based on averages and variances.
-		public vfloat4[] input_averages;
-		public vfloat4[] input_variances;
 		public float[] input_alpha_averages;
 
-		public compress_symbolic_block_buffers working_buffers;
+		public compression_working_buffers[] working_buffers;
 
-		public pixel_region_variance_args arg;
-		public avg_var_args ag;
-
-		public float[] deblock_weights;
-
-		ParallelManager manage_avg_var;
-		ParallelManager manage_compress;
-
-		public astcenc_context(bool unused)
-		{
-			this.config = new ASTCEncConfig();
-			this.thread_count = 0;
-			this.bsd = new BlockSizeDescriptor();
-
-			this.deblock_weights = new float[Constants.MAX_TEXELS_PER_BLOCK];
-		}
+		#if !ASTCENC_DECOMPRESS_ONLY
+		/** @brief The pixel region and variance worker arguments. */
+		public avg_args avg_preprocess_args;
+		#endif
 	}
 
 	// *********************************************************

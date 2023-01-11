@@ -88,6 +88,55 @@ namespace ASTCEnc
 			new AstcencPresetConfig(ASTCEnc.ASTCENC_PRE_EXHAUSTIVE, 4, 256, 256, 256, 100, 4, 8, 32, 32, 32, 200.0f, 200.0f, 10.0f, 10.0f, 2.0f, 2.0f, 0.99f),
 		};
 
+		public static ASTCEncError validate_cpu_float()
+		{
+			float p;
+			float xprec_testval = 2.51f;
+			p = xprec_testval + 12582912.0f;
+			float q = p - 12582912.0f;
+
+			if (q != 3.0f)
+			{
+				return ASTCEncError.ASTCENC_ERR_BAD_CPU_FLOAT;
+			}
+
+			return ASTCEncError.ASTCENC_SUCCESS;
+		}
+
+		public static ASTCEncError validate_cpu_isa()
+		{
+			/*
+			#if ASTCENC_SSE >= 41
+				if (!cpu_supports_sse41())
+				{
+					return ASTCENC_ERR_BAD_CPU_ISA;
+				}
+			#endif
+
+			#if ASTCENC_POPCNT >= 1
+				if (!cpu_supports_popcnt())
+				{
+					return ASTCENC_ERR_BAD_CPU_ISA;
+				}
+			#endif
+
+			#if ASTCENC_F16C >= 1
+				if (!cpu_supports_f16c())
+				{
+					return ASTCENC_ERR_BAD_CPU_ISA;
+				}
+			#endif
+
+			#if ASTCENC_AVX >= 2
+				if (!cpu_supports_avx2())
+				{
+					return ASTCENC_ERR_BAD_CPU_ISA;
+				}
+			#endif
+			*/
+			return ASTCEncError.ASTCENC_SUCCESS;
+		}
+
 		public static ASTCEncError validate_profile(ASTCEncProfile profile) 
 		{
 			// Values in this enum are from an external user, so not guaranteed to be
@@ -229,11 +278,11 @@ namespace ASTCEnc
 				return status;
 			}
 
-		#if defined(ASTCENC_DECOMPRESS_ONLY)
+		#if ASTCENC_DECOMPRESS_ONLY
 			// Decompress-only builds only support decompress-only contexts
 			if (!(config.flags & ASTCENC_FLG_DECOMPRESS_ONLY))
 			{
-				return ASTCENC_ERR_BAD_PARAM;
+				return ASTCEncError.ASTCENC_ERR_BAD_PARAM;
 			}
 		#endif
 
@@ -295,7 +344,7 @@ namespace ASTCEnc
 			}
 
 			// Zero init all config fields; although most of will be over written
-			?
+			config = default;
 
 			// Process the block size
 			block_z = ASTCMath.max(block_z, 1u); // For 2D blocks Z==0 is accepted, but convert to 1
@@ -507,6 +556,109 @@ namespace ASTCEnc
 				}
 			}
 			config.flags = flags;
+
+			return ASTCEncError.ASTCENC_SUCCESS;
+		}
+
+		public ASTCEncError astcenc_context_alloc(
+			ASTCEncConfig config,
+			uint thread_count,
+			astcenc_context context
+		) {
+			ASTCEncError status;
+
+			status = validate_cpu_isa();
+			if (status != ASTCEncError.ASTCENC_SUCCESS)
+			{
+				return status;
+			}
+
+			status = validate_cpu_float();
+			if (status != ASTCEncError.ASTCENC_SUCCESS)
+			{
+				return status;
+			}
+
+			if (thread_count == 0)
+			{
+				return ASTCEncError.ASTCENC_ERR_BAD_PARAM;
+			}
+
+		#if ASTCENC_DIAGNOSTICS
+			// Force single threaded compressor use in diagnostic mode.
+			if (thread_count != 1)
+			{
+				return ASTCEncError.ASTCENC_ERR_BAD_PARAM;
+			}
+		#endif
+
+			astcenc_context ctxo = new astcenc_context();
+			astcenc_contexti ctx = ctxo.context;
+			ctx.thread_count = thread_count;
+			ctx.config = config;
+			ctx.working_buffers = null;
+
+			// These are allocated per-compress, as they depend on image size
+			ctx.input_alpha_averages = null;
+
+			// Copy the config first and validate the copy (we may modify it)
+			status = validate_config(ctx.config);
+			if (status != ASTCEncError.ASTCENC_SUCCESS)
+			{
+				return status;
+			}
+
+			ctx.bsd = aligned_malloc<block_size_descriptor>(sizeof(block_size_descriptor), ASTCENC_VECALIGN);
+			bool can_omit_modes = (bool)(config.flags & ASTCENC_FLG_SELF_DECOMPRESS_ONLY);
+			init_block_size_descriptor(config.block_x, config.block_y, config.block_z,
+									can_omit_modes,
+									config.tune_partition_count_limit,
+									(float)(config.tune_block_mode_limit) / 100.0f,
+									ctx.bsd);
+
+		#if !ASTCENC_DECOMPRESS_ONLY
+			// Do setup only needed by compression
+			if (!(status & ASTCEnc.ASTCENC_FLG_DECOMPRESS_ONLY))
+			{
+				// Turn a dB limit into a per-texel error for faster use later
+				if ((ctx.config.profile == ASTCEncProfile.ASTCENC_PRF_LDR) || (ctx.config.profile == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB))
+				{
+					ctx.config.tune_db_limit = astc::pow(0.1f, ctx.config.tune_db_limit * 0.1f) * 65535.0f * 65535.0f;
+				}
+				else
+				{
+					ctx.config.tune_db_limit = 0.0f;
+				}
+
+				size_t worksize = sizeof(compression_working_buffers) * thread_count;
+				ctx.working_buffers = aligned_malloc<compression_working_buffers>(worksize, ASTCENC_VECALIGN);
+				static_assert((sizeof(compression_working_buffers) % ASTCENC_VECALIGN) == 0,
+							"compression_working_buffers size must be multiple of vector alignment");
+				if (!ctx.working_buffers)
+				{
+					
+					return ASTCEncError.ASTCENC_ERR_OUT_OF_MEM;
+				}
+			}
+		#endif
+
+		#if ASTCENC_DIAGNOSTICS
+			ctx.trace_log = new TraceLog(ctx.config.trace_file_path);
+			if (!ctx.trace_log->m_file)
+			{
+				return ASTCENC_ERR_DTRACE_FAILURE;
+			}
+
+			trace_add_data("block_x", config.block_x);
+			trace_add_data("block_y", config.block_y);
+			trace_add_data("block_z", config.block_z);
+		#endif
+
+			*context = ctxo;
+
+		#if !ASTCENC_DECOMPRESS_ONLY
+			prepare_angular_tables();
+		#endif
 
 			return ASTCEncError.ASTCENC_SUCCESS;
 		}
