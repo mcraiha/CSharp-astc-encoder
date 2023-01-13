@@ -133,12 +133,22 @@ namespace ASTCEnc
 			return p < q ? p : q;
 		}
 
+		public static int min(int p, int q)
+		{
+			return p < q ? p : q;
+		}
+
 		public static float min(float p, float q)
 		{
 			return p < q ? p : q;
 		}
 
 		public static uint max(uint p, uint q)
+		{
+			return p > q ? p : q;
+		}
+
+		public static int max(int p, int q)
 		{
 			return p > q ? p : q;
 		}

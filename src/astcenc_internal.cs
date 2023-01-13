@@ -76,6 +76,21 @@ namespace ASTCEnc
 		FMT_HDR_RGBA = 15
 	}
 
+	public static class SYM_BTYPE
+	{
+		/** @brief The block is an error block, and will return error color or NaN. */
+		public const byte SYM_BTYPE_ERROR = 0;
+
+		/** @brief The block is a constant color block using FP16 colors. */
+		public const byte SYM_BTYPE_CONST_F16 = 1;
+
+		/** @brief The block is a constant color block using UNORM16 colors. */
+		public const byte SYM_BTYPE_CONST_U16 = 2;
+
+		/** @brief The block is a normal non-constant color block. */
+		public const byte SYM_BTYPE_NONCONST = 3;
+	}
+
 	/**
 	* @brief A symbolic representation of a compressed block.
 	*
@@ -151,6 +166,11 @@ namespace ASTCEnc
 	{
 		public byte[] data = new byte[16];
 		public PhysicalCompressedBlock()
+		{
+
+		}
+
+		public PhysicalCompressedBlock(byte[] data, uint offset)
 		{
 
 		}

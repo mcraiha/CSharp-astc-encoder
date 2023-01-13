@@ -166,7 +166,7 @@ namespace ASTCEnc
 		}
 
 		/* See header for documentation. */
-		void decompress_symbolic_block(
+		public static void decompress_symbolic_block(
 			ASTCEncProfile decode_mode,
 			BlockSizeDescriptor bsd,
 			int xpos,
@@ -185,7 +185,7 @@ namespace ASTCEnc
 			blk.grayscale = false;
 
 			// If we detected an error-block, blow up immediately.
-			if (scb.block_type == SYM_BTYPE_ERROR)
+			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
 				for (uint i = 0; i < bsd.texel_count; i++)
 				{
@@ -200,14 +200,14 @@ namespace ASTCEnc
 				return;
 			}
 
-			if ((scb.block_type == SYM_BTYPE_CONST_F16) ||
-				(scb.block_type == SYM_BTYPE_CONST_U16))
+			if ((scb.block_type == SYM_BTYPE.SYM_BTYPE_CONST_F16) ||
+				(scb.block_type == SYM_BTYPE.SYM_BTYPE_CONST_U16))
 			{
 				vfloat4 color;
 				byte use_lns = 0;
 
 				// UNORM16 constant color block
-				if (scb.block_type == SYM_BTYPE_CONST_U16)
+				if (scb.block_type == SYM_BTYPE.SYM_BTYPE_CONST_U16)
 				{
 					vint4 colori = new (scb.constant_color);
 
@@ -226,12 +226,12 @@ namespace ASTCEnc
 				{
 					switch (decode_mode)
 					{
-					case ASTCENC_PRF_LDR_SRGB:
-					case ASTCENC_PRF_LDR:
+					case ASTCEncProfile.ASTCENC_PRF_LDR_SRGB:
+					case ASTCEncProfile.ASTCENC_PRF_LDR:
 						color = new vfloat4(error_color_nan());
 						break;
-					case ASTCENC_PRF_HDR_RGB_LDR_A:
-					case ASTCENC_PRF_HDR:
+					case ASTCEncProfile.ASTCENC_PRF_HDR_RGB_LDR_A:
+					case ASTCEncProfile.ASTCENC_PRF_HDR:
 						// Constant-color block; unpack from FP16 to FP32.
 						color = float16_to_float(vint4(scb.constant_color));
 						use_lns = 1;
@@ -254,7 +254,7 @@ namespace ASTCEnc
 
 			// Get the appropriate partition-table entry
 			int partition_count = scb.partition_count;
-			PartitionInfo pi = bsd.get_partition_info(partition_count, scb.partition_index);
+			PartitionInfo pi = bsd.get_partition_info((uint)partition_count, scb.partition_index);
 
 			// Get the appropriate block descriptors
 			BlockMode bm = bsd.get_block_mode(scb.block_mode);
@@ -269,7 +269,7 @@ namespace ASTCEnc
 
 			// Now that we have endpoint colors and weights, we can unpack texel colors
 			int plane2_component = is_dual_plane ? scb.plane2_component : -1;
-			vmask4 plane2_mask = vint4::lane_id() == new vint4(plane2_component);
+			vmask4 plane2_mask = vint4.lane_id() == new vint4(plane2_component);
 
 			for (int i = 0; i < partition_count; i++)
 			{
@@ -292,7 +292,7 @@ namespace ASTCEnc
 				for (int j = 0; j < texel_count; j++)
 				{
 					int tix = pi.texels_of_partition[i][j];
-					vint4 weight = select(vint4(plane1_weights[tix]), vint4(plane2_weights[tix]), plane2_mask);
+					vint4 weight = vint4.select(new vint4(plane1_weights[tix]), new vint4(plane2_weights[tix]), plane2_mask);
 					vint4 color = lerp_color_int(decode_mode, ep0, ep1, weight);
 					vfloat4 colorf = decode_texel(color, lns_mask);
 
@@ -304,7 +304,7 @@ namespace ASTCEnc
 			}
 		}
 
-		#if !defined(ASTCENC_DECOMPRESS_ONLY)
+		#if !ASTCENC_DECOMPRESS_ONLY
 
 		/* See header for documentation. */
 		float compute_symbolic_block_difference_2plane(
@@ -314,14 +314,14 @@ namespace ASTCEnc
 			ImageBlock blk
 		) {
 			// If we detected an error-block, blow up immediately.
-			if (scb.block_type == SYM_BTYPE_ERROR)
+			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
 				return ERROR_CALC_DEFAULT;
 			}
 
 			Debug.Assert(scb.block_mode >= 0);
 			Debug.Assert(scb.partition_count == 1);
-			Debug.Assert(bsd.get_block_mode(scb.block_mode).is_dual_plane == 1);
+			Debug.Assert(bsd.get_block_mode(scb.block_mode).is_dual_plane);
 
 			// Get the appropriate block descriptor
 			BlockMode bm = bsd.get_block_mode(scb.block_mode);
@@ -332,7 +332,7 @@ namespace ASTCEnc
 			int[] plane2_weights = new int[Constants.BLOCK_MAX_TEXELS];
 			unpack_weights(bsd, scb, di, true, plane1_weights, plane2_weights);
 
-			vmask4 plane2_mask = vint4::lane_id() == vint4(scb.plane2_component);
+			vmask4 plane2_mask = vint4.lane_id() == new vint4(scb.plane2_component);
 
 			vfloat4 summa = vfloat4.zero();
 
@@ -353,7 +353,7 @@ namespace ASTCEnc
 			uint texel_count = bsd.texel_count;
 			for (uint i = 0; i < texel_count; i++)
 			{
-				vint4 weight = select(vint4(plane1_weights[i]), vint4(plane2_weights[i]), plane2_mask);
+				vint4 weight = vint4.select(new vint4(plane1_weights[i]), new vint4(plane2_weights[i]), plane2_mask);
 				vint4 colori = lerp_color_int(config.profile, ep0, ep1, weight);
 
 				vfloat4 color = int_to_float(colori);
@@ -409,7 +409,7 @@ namespace ASTCEnc
 			Debug.Assert(bsd.get_block_mode(scb.block_mode).is_dual_plane == false);
 
 			// If we detected an error-block, blow up immediately.
-			if (scb.block_type == SYM_BTYPE_ERROR)
+			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
 				return ERROR_CALC_DEFAULT;
 			}
@@ -504,7 +504,7 @@ namespace ASTCEnc
 			ImageBlock blk
 		) {
 			// If we detected an error-block, blow up immediately.
-			if (scb.block_type == SYM_BTYPE_ERROR)
+			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
 				return ERROR_CALC_DEFAULT;
 			}
@@ -544,7 +544,7 @@ namespace ASTCEnc
 			// Unpack and compute error for each texel in the partition
 			vfloatacc summav = vfloatacc.zero();
 
-			vint lane_id = vint::lane_id();
+			vint lane_id = vint.lane_id();
 			vint srgb_scale = new vint(config.profile == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB ? 257 : 1);
 
 			uint texel_count = bsd.texel_count;
