@@ -1071,19 +1071,19 @@ namespace ASTCEnc
 					int x = rem - (y * row_blocks);
 
 					uint offset = (((z * yblocks + y) * xblocks) + x) * 16;
-					const uint8_t* bp = data + offset;
+					byte[] bp = data + offset;
 
-					const physical_compressed_block& pcb = *reinterpret_cast<const physical_compressed_block*>(bp);
-					symbolic_compressed_block scb;
+					PhysicalCompressedBlock pcb = *reinterpret_cast<const physical_compressed_block*>(bp);
+					SymbolicCompressedBlock scb;
 
 					physical_to_symbolic(ctx.bsd, pcb, scb);
 
-					decompress_symbolic_block(ctx.config.profile, ctx.bsd,
+					DecompressSymbolic.decompress_symbolic_block(ctx.config.profile, ctx.bsd,
 											x * block_x, y * block_y, z * block_z,
 											scb, blk);
 
 					store_image_block(image_out, blk, ctx.bsd,
-									x * block_x, y * block_y, z * block_z, *swizzle);
+									x * block_x, y * block_y, z * block_z, swizzle);
 				}
 
 				ctxo.manage_decompress.complete_task_assignment(count);

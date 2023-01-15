@@ -87,6 +87,12 @@ namespace ASTCEnc
 	{
 		public Float2 a;
 		public Float2 b;
+
+		public Line2(Float2 aa, Float2 bb)
+		{
+			a = aa;
+			b = bb;
+		}
 	};
 
 	// parametric line, 3D
@@ -128,14 +134,49 @@ namespace ASTCEnc
 			return p < q ? p : q;
 		}*/
 
+		public static byte min(byte p, byte q)
+		{
+			return p < q ? p : q;
+		}
+
+		public static byte min(byte p, byte q, byte r)
+		{
+			return min(min(p, q), r);
+		}
+
+		public static byte min(byte p, byte q, byte r, byte s)
+		{
+			return min(min(p, q), min(r, s));
+		}
+
 		public static uint min(uint p, uint q)
 		{
 			return p < q ? p : q;
 		}
 
+		public static uint min(uint p, uint q, uint r)
+		{
+			return min(min(p, q), r);
+		}
+
+		public static uint min(uint p, uint q, uint r, uint s)
+		{
+			return min(min(p, q), min(r, s));
+		}
+
 		public static int min(int p, int q)
 		{
 			return p < q ? p : q;
+		}
+
+		public static int min(int p, int q, int r)
+		{
+			return min(min(p, q), r);
+		}
+
+		public static int min(int p, int q, int r, int s)
+		{
+			return min(min(p, q), min(r, s));
 		}
 
 		public static float min(float p, float q)
