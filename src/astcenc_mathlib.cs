@@ -106,6 +106,12 @@ namespace ASTCEnc
 	{
 		public vfloat4 a;
 		public vfloat4 b;
+
+		public Line4(vfloat4 aa, vfloat4 bb)
+		{
+			this.a = aa;
+			this.b = bb;
+		}
 	};
 
 

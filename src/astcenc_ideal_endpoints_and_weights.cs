@@ -345,12 +345,8 @@ namespace ASTCEnc
         * @param[out] ei                  The computed ideal endpoints and weights.
         * @param      omitted_component   The color component excluded from the calculation.
         */
-        static void compute_ideal_colors_and_weights_3_comp(
-            ImageBlock blk,
-            PartitionInfo pi,
-            EndpointsAndWeights ei,
-            uint omitted_component
-        ) {
+        static void compute_ideal_colors_and_weights_3_comp(ImageBlock blk, PartitionInfo pi, EndpointsAndWeights ei, uint omitted_component) 
+        {
             uint partition_count = pi.partition_count;
             ei.ep.partition_count = partition_count;
             //promise(partition_count > 0);
@@ -412,7 +408,7 @@ namespace ASTCEnc
             for (uint i = 0; i < partition_count; i++)
             {
                 vfloat4 dir = pms[i].dir;
-                if (hadd_rgb_s(dir) < 0.0f)
+                if (vfloat4.hadd_rgb_s(dir) < 0.0f)
                 {
                     dir = vfloat4.zero() - dir;
                 }
@@ -534,12 +530,12 @@ namespace ASTCEnc
             for (uint i = 0; i < partition_count; i++)
             {
                 vfloat4 dir = pms[i].dir;
-                if (hadd_rgb_s(dir) < 0.0f)
+                if (vfloat4.hadd_rgb_s(dir) < 0.0f)
                 {
                     dir = vfloat4.zero() - dir;
                 }
 
-                line4 line { pms[i].avg, normalize_safe(dir, unit4()) };
+                Line4 line = new Line4(pms[i].avg, normalize_safe(dir, unit4()));
                 float lowparam = 1e10f;
                 float highparam = -1e10f;
 
@@ -547,7 +543,7 @@ namespace ASTCEnc
                 for (uint j = 0; j < partition_texel_count; j++)
                 {
                     uint tix = pi.texels_of_partition[i][j];
-                    vfloat4 point = blk.texel(tix);
+                    vfloat4 point = blk.Texel(tix);
                     float param = dot_s(point - line.a, line.b);
                     ei.weights[tix] = param;
 
@@ -603,10 +599,7 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static void compute_ideal_colors_and_weights_1plane(
-            ImageBlock blk,
-            PartitionInfo pi,
-            EndpointsAndWeights ei
+        static void compute_ideal_colors_and_weights_1plane( ImageBlock blk, PartitionInfo pi,  EndpointsAndWeights ei
         ) {
             bool uses_alpha = !blk.is_constant_channel(3);
 
@@ -621,13 +614,8 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static void compute_ideal_colors_and_weights_2planes(
-            BlockSizeDescriptor bsd,
-            ImageBlock blk,
-            uint plane2_component,
-            EndpointsAndWeights ei1,
-            EndpointsAndWeights ei2
-        ) {
+        static void compute_ideal_colors_and_weights_2planes(BlockSizeDescriptor bsd, ImageBlock blk, uint plane2_component, EndpointsAndWeights ei1, EndpointsAndWeights ei2) 
+        {
             PartitionInfo pi = bsd.get_partition_info(1, 0);
             bool uses_alpha = !blk.is_constant_channel(3);
 
@@ -684,7 +672,7 @@ namespace ASTCEnc
             DecimationInfo di,
             float[] dec_weight_quant_uvalue
         ) {
-            vfloatacc error_summav = vfloatacc::zero();
+            vfloatacc error_summav = vfloatacc.zero();
             float error_summa = 0.0f;
             uint texel_count = di.texel_count;
 
@@ -743,14 +731,9 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static float compute_error_of_weight_set_2planes(
-            EndpointsAndWeights eai1,
-            EndpointsAndWeights eai2,
-            DecimationInfo di,
-            float[] dec_weight_quant_uvalue_plane1,
-            float[] dec_weight_quant_uvalue_plane2
-        ) {
-            vfloatacc error_summav = vfloatacc::zero();
+        static float compute_error_of_weight_set_2planes(EndpointsAndWeights eai1, EndpointsAndWeights eai2, DecimationInfo di, float[] dec_weight_quant_uvalue_plane1, float[] dec_weight_quant_uvalue_plane2) 
+        {
+            vfloatacc error_summav = vfloatacc.zero();
             uint texel_count = di.texel_count;
 
             // Process SIMD-width chunks, safe to over-fetch - the extra space is zero initialized
@@ -835,11 +818,8 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static void compute_ideal_weights_for_decimation(
-            EndpointsAndWeights ei,
-            DecimationInfo di,
-            float[] dec_weight_ideal_value
-        ) {
+        static void compute_ideal_weights_for_decimation(EndpointsAndWeights ei, DecimationInfo di, float[] dec_weight_ideal_value) 
+        {
             uint texel_count = di.texel_count;
             uint weight_count = di.weight_count;
             bool is_direct = texel_count == weight_count;
@@ -878,18 +858,18 @@ namespace ASTCEnc
             for (uint i = 0; i < weight_count; i += Constants.ASTCENC_SIMD_WIDTH)
             {
                 // Start with a small value to avoid div-by-zero later
-                vfloat weight_weight = new vfloat (1e-10f);
+                vfloat weight_weight = new vfloat(1e-10f);
                 vfloat initial_weight = vfloat.zero();
 
                 // Accumulate error weighting of all the texels using this weight
-                vint weight_texel_count(di.weight_texel_count + i);
+                vint weight_texel_count = new vint(di.weight_texel_count + i);
                 uint max_texel_count = hmax(weight_texel_count).lane(0);
                 //promise(max_texel_count > 0);
 
                 for (uint j = 0; j < max_texel_count; j++)
                 {
                     vint texel = new vint(di.weight_texel[j] + i);
-                    vfloat weight = loada(di.weights_flt[j] + i);
+                    vfloat weight = vfloat.loada(di.weights_flt[j] + i);
 
                     if (!constant_wes)
                     {
@@ -928,11 +908,11 @@ namespace ASTCEnc
             // Perform a single iteration of refinement
             // Empirically determined step size; larger values don't help but smaller drops image quality
             float stepsize = 0.25f;
-            float chd_scale = -WEIGHTS_TEXEL_SUM;
+            float chd_scale = -Constants.WEIGHTS_TEXEL_SUM;
 
             for (uint i = 0; i < weight_count; i += Constants.ASTCENC_SIMD_WIDTH)
             {
-                vfloat weight_val = loada(dec_weight_ideal_value + i);
+                vfloat weight_val = vfloat.loada(dec_weight_ideal_value + i);
 
                 // Accumulate error weighting of all the texels using this weight
                 // Start with a small value to avoid div-by-zero later
@@ -940,13 +920,13 @@ namespace ASTCEnc
                 vfloat error_change1 = new vfloat(0.0f);
 
                 // Accumulate error weighting of all the texels using this weight
-                vint weight_texel_count = new vint (di.weight_texel_count + i);
+                vint weight_texel_count = new vint(di.weight_texel_count + i);
                 uint max_texel_count = hmax(weight_texel_count).lane(0);
                 //promise(max_texel_count > 0);
 
                 for (uint j = 0; j < max_texel_count; j++)
                 {
-                    vint texel(di.weight_texel[j] + i);
+                    vint texel = new vint(di.weight_texel[j] + i);
                     vfloat contrib_weight = loada(di.weights_flt[j] + i);
 
                     if (!constant_wes)
@@ -971,18 +951,11 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        void compute_quantized_weights_for_decimation(
-            DecimationInfo di,
-            float low_bound,
-            float high_bound,
-            float[] dec_weight_ideal_value,
-            float[] weight_set_out,
-            byte[] quantized_weight_set,
-            QuantMethod quant_level
-        ) {
+        void compute_quantized_weights_for_decimation(DecimationInfo di, float low_bound, float high_bound, float[] dec_weight_ideal_value, float[] weight_set_out, byte[] quantized_weight_set, QuantMethod quant_level) 
+        {
             int weight_count = di.weight_count;
             //promise(weight_count > 0);
-            quant_and_transfer_table qat = quant_and_xfer_tables[quant_level];
+            QuantAndTransferTable qat = ASTCEncWeightQuantXferTables.quant_and_xfer_tables[quant_level];
 
             // The available quant levels, stored with a minus 1 bias
             float[] quant_levels_m1 = new float[12] {
@@ -1023,7 +996,7 @@ namespace ASTCEnc
 
                 for (int i = 0; i < weight_count; i += Constants.ASTCENC_SIMD_WIDTH)
                 {
-                    vfloat ix = loada(dec_weight_ideal_value + i) * scalev - scaled_low_boundv;
+                    vfloat ix = vfloat.loada(dec_weight_ideal_value + i) * scalev - scaled_low_boundv;
                     ix = clampzo(ix);
 
                     // Look up the two closest indexes and return the one that was closest
@@ -1241,7 +1214,7 @@ namespace ASTCEnc
                 float weight_weight_sum_s = 1e-17f;
 
                 vfloat4 color_weight = blk.channel_weight;
-                float ls_weight = hadd_rgb_s(color_weight);
+                float ls_weight = vfloat4.hadd_rgb_s(color_weight);
 
                 for (uint j = 0; j < texel_count; j++)
                 {
@@ -1280,7 +1253,7 @@ namespace ASTCEnc
                 vfloat4 lmrs_sum   = vfloat3(left_sum_s, middle_sum_s, right_sum_s) * ls_weight;
 
                 vfloat4 weight_weight_sum = vfloat4(weight_weight_sum_s) * color_weight;
-                float psum = right_sum_s * hadd_rgb_s(color_weight);
+                float psum = right_sum_s * vfloat4.hadd_rgb_s(color_weight);
 
                 color_vec_x = color_vec_x * color_weight;
                 color_vec_y = color_vec_y * color_weight;
@@ -1346,7 +1319,7 @@ namespace ASTCEnc
 
                 // Calculations specific to mode #7, the HDR RGB-scale mode
                 vfloat4 rgbq_sum = color_vec_x + color_vec_y;
-                rgbq_sum.set_lane<3>(hadd_rgb_s(color_vec_y));
+                rgbq_sum.set_lane<3>(vfloat4.hadd_rgb_s(color_vec_y));
 
                 vfloat4 rgbovec = compute_rgbo_vector(rgba_weight_sum, weight_weight_sum, rgbq_sum, psum);
                 rgbo_vectors[i] = rgbovec;
@@ -1358,7 +1331,7 @@ namespace ASTCEnc
                     vfloat4 v0 = ep.endpt0[i];
                     vfloat4 v1 = ep.endpt1[i];
 
-                    float avgdif = hadd_rgb_s(v1 - v0) * (1.0f / 3.0f);
+                    float avgdif = vfloat4.hadd_rgb_s(v1 - v0) * (1.0f / 3.0f);
                     avgdif = ASTCMath.max(avgdif, 0.0f);
 
                     vfloat4 avg = (v0 + v1) * 0.5f;
@@ -1472,7 +1445,7 @@ namespace ASTCEnc
 
             vmask4 p2_mask = vint4::lane_id() == vint4(plane2_component);
             vfloat4 color_weight = blk.channel_weight;
-            float ls_weight = hadd_rgb_s(color_weight);
+            float ls_weight = vfloat4.hadd_rgb_s(color_weight);
 
             for (uint j = 0; j < texel_count; j++)
             {
@@ -1627,7 +1600,7 @@ namespace ASTCEnc
 
             // Calculations specific to mode #7, the HDR RGB-scale mode
             vfloat4 rgbq_sum = color_vec_x + color_vec_y;
-            rgbq_sum.set_lane<3>(hadd_rgb_s(color_vec_y));
+            rgbq_sum.set_lane<3>(vfloat4.hadd_rgb_s(color_vec_y));
 
             rgbo_vector = compute_rgbo_vector(rgba_weight_sum, weight_weight_sum, rgbq_sum, psum);
 
@@ -1638,7 +1611,7 @@ namespace ASTCEnc
                 vfloat4 v0 = ep.endpt0[0];
                 vfloat4 v1 = ep.endpt1[0];
 
-                float avgdif = hadd_rgb_s(v1 - v0) * (1.0f / 3.0f);
+                float avgdif = vfloat4.hadd_rgb_s(v1 - v0) * (1.0f / 3.0f);
                 avgdif = ASTCMath.max(avgdif, 0.0f);
 
                 vfloat4 avg = (v0 + v1) * 0.5f;

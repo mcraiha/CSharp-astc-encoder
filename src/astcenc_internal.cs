@@ -710,6 +710,48 @@ namespace ASTCEnc
 		}
 	}
 
+	/**
+	* @brief Weight quantization transfer table.
+	*
+	* ASTC can store texel weights at many quantization levels, so for performance we store essential
+	* information about each level as a precomputed data structure. Unquantized weights are integers
+	* or floats in the range [0, 64].
+	*
+	* This structure provides a table, used to estimate the closest quantized weight for a given
+	* floating-point weight. For each quantized weight, the corresponding unquantized values. For each
+	* quantized weight, a previous-value and a next-value.
+	*/
+	public struct QuantAndTransferTable
+	{
+		/** @brief The quantization level used. */
+		public QuantMethod method;
+
+		/** @brief The unscrambled unquantized value. */
+		public sbyte[] quant_to_unquant = new sbyte[32];
+
+		/** @brief The scrambling order: scrambled_quant = map[unscrambled_quant]. */
+		public sbyte[] scramble_map = new sbyte[32];
+
+		/** @brief The unscrambling order: unscrambled_unquant = map[scrambled_quant]. */
+		public sbyte[] unscramble_and_unquant_map = new sbyte[32];
+
+		/**
+		* @brief A table of previous-and-next weights, indexed by the current unquantized value.
+		*  * bits 7:0 = previous-index, unquantized
+		*  * bits 15:8 = next-index, unquantized
+		*/
+		public ushort[] prev_next_values = new ushort[65];
+
+		public QuantAndTransferTable(QuantMethod m, sbyte[] qtu, sbyte[] sm, sbyte[] uaum, ushort[] pnv)
+		{
+			this.method = m;
+			this.quant_to_unquant = qtu;
+			this.scramble_map = sm;
+			this.unscramble_and_unquant_map = uaum;
+			this.prev_next_values = pnv;
+		}
+	}
+
 	public struct DtInitWorkingBuffers
 	{
 		public byte[] weight_count_of_texel = new byte[Constants.BLOCK_MAX_TEXELS];
