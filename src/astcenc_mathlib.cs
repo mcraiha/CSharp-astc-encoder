@@ -234,6 +234,15 @@ namespace ASTCEnc
 			return mn;
 		}
 
+		public static float clamp(float v, float mn, float mx)
+		{
+			// Do not reorder; correct NaN handling relies on the fact that comparison
+			// with NaN returns false and will fall-though to the "min" value.
+			if (v > mx) return mx;
+			if (v > mn) return v;
+			return mn;
+		}
+
 		public static float clamp1f(float value)
 		{
 			return (value < 0.0f) ? 0.0f : (value > 1.0f) ? 1.0f : value; 
