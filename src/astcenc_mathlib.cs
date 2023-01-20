@@ -200,6 +200,11 @@ namespace ASTCEnc
 			return p > q ? p : q;
 		}
 
+		public static byte max(byte p, byte q)
+		{
+			return p > q ? p : q;
+		}
+
 		public static float max(float p, float q)
 		{
 			return p > q ? p : q;

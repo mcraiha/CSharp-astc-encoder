@@ -71,7 +71,7 @@ namespace ASTCEnc
                     break;
                 case 3:
                     B &= 1;
-                    if (block_mode & 0x100)
+                    if ((block_mode & 0x100) != 0)
                     {
                         x_weights = B + 2;
                         y_weights = A + 2;
@@ -196,17 +196,17 @@ namespace ASTCEnc
                 {
                 case 0:
                     x_weights = 6;
-                    y_weights = B + 2;
+                    y_weights = (uint)(B + 2);
                     z_weights = A + 2;
                     break;
                 case 1:
                     x_weights = A + 2;
                     y_weights = 6;
-                    z_weights = B + 2;
+                    z_weights = (uint)(B + 2);
                     break;
                 case 2:
                     x_weights = A + 2;
-                    y_weights = B + 2;
+                    y_weights = (uint)(B + 2);
                     z_weights = 6;
                     break;
                 case 3:
@@ -318,7 +318,7 @@ namespace ASTCEnc
                             wb.texels_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
                             wb.texel_weights_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
                             wb.texel_count_of_weight[qweight[i]]++;
-                            max_texel_count_of_weight = astc::max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
+                            max_texel_count_of_weight = ASTCMath.max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
                         }
                     }
                 }
@@ -328,7 +328,7 @@ namespace ASTCEnc
             for (uint i = 0; i < texels_per_block; i++)
             {
                 di.texel_weight_count[i] = wb.weight_count_of_texel[i];
-                max_texel_weight_count = astc::max(max_texel_weight_count, di.texel_weight_count[i]);
+                max_texel_weight_count = ASTCMath.max(max_texel_weight_count, di.texel_weight_count[i]);
 
                 for (uint j = 0; j < wb.weight_count_of_texel[i]; j++)
                 {
@@ -482,7 +482,7 @@ namespace ASTCEnc
                 {
                     for (uint x = 0; x < x_texels; x++)
                     {
-                        int texel = (z * y_texels + y) * x_texels + x;
+                        int texel = (int)((z * y_texels + y) * x_texels + x);
 
                         int x_weight = (((1024 + x_texels / 2) / (x_texels - 1)) * x * (x_weights - 1) + 32) >> 6;
                         int y_weight = (((1024 + y_texels / 2) / (y_texels - 1)) * y * (y_weights - 1) + 32) >> 6;
@@ -505,8 +505,8 @@ namespace ASTCEnc
                         int fp = z_weight_frac;
 
                         int cas = ((fs > ft) << 2) + ((ft > fp) << 1) + ((fs > fp));
-                        int N = x_weights;
-                        int NM = x_weights * y_weights;
+                        int N = (int)x_weights;
+                        int NM = (int)(x_weights * y_weights);
 
                         int s1, s2, w0, w1, w2, w3;
                         switch (cas)
@@ -586,7 +586,7 @@ namespace ASTCEnc
                                 wb.texels_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(texel);
                                 wb.texel_weights_of_weight[qweight[i], wb.texel_count_of_weight[qweight[i]]] = (byte)(weight[i]);
                                 wb.texel_count_of_weight[qweight[i]]++;
-                                max_texel_count_of_weight = astc::max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
+                                max_texel_count_of_weight = ASTCMath.max(max_texel_count_of_weight, wb.texel_count_of_weight[qweight[i]]);
                             }
                         }
                     }
@@ -597,7 +597,7 @@ namespace ASTCEnc
             for (uint i = 0; i < texels_per_block; i++)
             {
                 di.texel_weight_count[i] = wb.weight_count_of_texel[i];
-                max_texel_weight_count = astc::max(max_texel_weight_count, di.texel_weight_count[i]);
+                max_texel_weight_count = ASTCMath.max(max_texel_weight_count, di.texel_weight_count[i]);
 
                 // Init all 4 entries so we can rely on zeros for vectorization
                 for (uint j = 0; j < 4; j++)

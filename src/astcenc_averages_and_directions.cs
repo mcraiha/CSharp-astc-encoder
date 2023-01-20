@@ -343,7 +343,7 @@ namespace ASTCEnc
 				for (uint i = 0; i < texel_count; i++)
 				{
 					uint iwt = texel_indexes[i];
-					vfloat4 texel_datum = blk.Texel(iwt);
+					vfloat4 texel_datum = blk.Texel((int)iwt);
 					texel_datum = texel_datum - average;
 
 					vfloat4 zero = vfloat4.zero();
@@ -514,7 +514,7 @@ namespace ASTCEnc
 				{
 					uint iwt = texel_indexes[i];
 
-					vfloat4 texel_datum = blk.Texel3(iwt);
+					vfloat4 texel_datum = blk.Texel3((int)iwt);
 					texel_datum = texel_datum - average;
 
 					vfloat4 zero = vfloat4.zero();
@@ -759,8 +759,8 @@ namespace ASTCEnc
 				float samec_linelen = samec_hiparam - samec_loparam;
 
 				// Turn very small numbers and NaNs into a small number
-				uncor_lengths[partition] = astc::max(uncor_linelen, 1e-7f);
-				samec_lengths[partition] = astc::max(samec_linelen, 1e-7f);
+				uncor_lengths[partition] = ASTCMath.max(uncor_linelen, 1e-7f);
+				samec_lengths[partition] = ASTCMath.max(samec_linelen, 1e-7f);
 			}
 
 			uncor_error = vfloat4.hadd_s(uncor_errorsumv);
@@ -885,8 +885,8 @@ namespace ASTCEnc
 				float samec_linelen = samec_hiparam - samec_loparam;
 
 				// Turn very small numbers and NaNs into a small number
-				pl.uncor_line_len = astc::max(uncor_linelen, 1e-7f);
-				pl.samec_line_len = astc::max(samec_linelen, 1e-7f);
+				pl.uncor_line_len = ASTCMath.max(uncor_linelen, 1e-7f);
+				pl.samec_line_len = ASTCMath.max(samec_linelen, 1e-7f);
 			}
 
 			uncor_error = vfloat4.hadd_s(uncor_errorsumv);

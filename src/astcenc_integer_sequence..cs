@@ -360,6 +360,17 @@ namespace ASTCEnc
 			new btq_count(QuantMethod.QUANT_256, 8, 0, 0 )
 		};
 
+		public struct ise_size
+		{
+			public byte scale;
+			public byte divisor;
+		}
+
+		public static ise_size[] ise_sizes = new ise_size[21]
+		{
+			new ise_size() {1, 0}
+		};
+
 		/* See header for documentation. */
 		public static int get_ise_sequence_bitcount(int items, QuantMethod quant) {
 			// Cope with out-of bounds values - input might be invalid
@@ -410,7 +421,7 @@ namespace ASTCEnc
 			int mask = (1 << bits) - 1;
 
 			// Write out trits and bits
-			if (trits)
+			if (trits != 0)
 			{
 				int i = 0;
 				int full_trit_blocks = elements / 5;
@@ -483,7 +494,7 @@ namespace ASTCEnc
 				}
 			}
 			// Write out quints and bits
-			else if (quints)
+			else if (quints != 0)
 			{
 				int i = 0;
 				int full_quint_blocks = elements / 3;
@@ -544,7 +555,7 @@ namespace ASTCEnc
 			// Write out just bits
 			else
 			{
-				promise(elements > 0);
+				//promise(elements > 0);
 				for (int i = 0; i < elements; i++)
 				{
 					write_bits(input_data[i], bits, bit_offset, output_data);
@@ -581,7 +592,7 @@ namespace ASTCEnc
 				results[i] = read_bits(bits, bit_offset, input_data);
 				bit_offset += bits;
 
-				if (trits)
+				if (trits != 0)
 				{
 					int[] bits_to_read = new int[5]  { 2, 2, 1, 2, 1 };
 					int[] block_shift = new int[5]   { 0, 2, 4, 5, 7 };
@@ -594,7 +605,7 @@ namespace ASTCEnc
 					lcounter = next_lcounter[lcounter];
 				}
 
-				if (quints)
+				if (quints != 0)
 				{
 					int[] bits_to_read = new int[3]  { 3, 2, 2 };
 					int[] block_shift = new int[3]   { 0, 3, 5 };
@@ -609,7 +620,7 @@ namespace ASTCEnc
 			}
 
 			// unpack trit-blocks or quint-blocks as needed
-			if (trits)
+			if (trits != 0)
 			{
 				int trit_blocks = (elements + 4) / 5;
 				for (int i = 0; i < trit_blocks; i++)
@@ -623,7 +634,7 @@ namespace ASTCEnc
 				}
 			}
 
-			if (quints)
+			if (quints != 0)
 			{
 				int quint_blocks = (elements + 2) / 3;
 				for (int i = 0; i < quint_blocks; i++)
