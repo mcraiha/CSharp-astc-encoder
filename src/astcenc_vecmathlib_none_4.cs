@@ -614,6 +614,17 @@ namespace ASTCEnc
 		}
 
 		/**
+		* @brief Arithmetic shift right.
+		*/
+		public static vint4 asr(vint4 a, int s)
+		{
+			return new vint4(a.m[0] >> s,
+						a.m[1] >> s,
+						a.m[2] >> s,
+						a.m[3] >> s);
+		}
+
+		/**
 		* @brief Return the min vector of two vectors.
 		*/
 		public static vint4 min(vint4 a, vint4 b)
@@ -708,26 +719,26 @@ namespace ASTCEnc
 
 		public static vmask4 operator|(vmask4 a, vmask4 b)
 		{
-			return new vmask4(a.m[0] | b.m[0],
-						a.m[1] | b.m[1],
-						a.m[2] | b.m[2],
-						a.m[3] | b.m[3]);
+			return new vmask4((a.m[0] | b.m[0]) != 0,
+						(a.m[1] | b.m[1]) != 0,
+						(a.m[2] | b.m[2]) != 0,
+						(a.m[3] | b.m[3]) != 0);
 		}
 
 		public static vmask4 operator&(vmask4 a, vmask4 b)
 		{
-			return new vmask4(a.m[0] & b.m[0],
-						a.m[1] & b.m[1],
-						a.m[2] & b.m[2],
-						a.m[3] & b.m[3]);
+			return new vmask4((a.m[0] & b.m[0]) != 0,
+						(a.m[1] & b.m[1]) != 0,
+						(a.m[2] & b.m[2]) != 0,
+						(a.m[3] & b.m[3]) != 0);
 		}
 
 		public static vmask4 operator^(vmask4 a, vmask4 b)
 		{
-			return new vmask4(a.m[0] ^ b.m[0],
-						a.m[1] ^ b.m[1],
-						a.m[2] ^ b.m[2],
-						a.m[3] ^ b.m[3]);
+			return new vmask4((a.m[0] ^ b.m[0]) != 0,
+						(a.m[1] ^ b.m[1]) != 0,
+						(a.m[2] ^ b.m[2]) != 0,
+						(a.m[3] ^ b.m[3]) != 0);
 		}
 
 		public static vmask4 operator~(vmask4 a)

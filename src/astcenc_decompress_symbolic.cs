@@ -27,12 +27,12 @@ namespace ASTCEnc
 
 			if (decode_mode == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB)
 			{
-				color0 = asr<8>(color0);
-				color1 = asr<8>(color1);
+				color0 = vint4.asr(color0, 8);
+				color1 = vint4.asr(color1, 8);
 			}
 
 			vint4 color = (color0 * weight0) + (color1 * weight1) + new vint4(32);
-			color = asr<6>(color);
+			color = vint4.asr(color, 6);
 
 			if (decode_mode == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB)
 			{
@@ -175,9 +175,9 @@ namespace ASTCEnc
 			SymbolicCompressedBlock scb,
 			ImageBlock blk
 		) {
-			blk.xpos = xpos;
-			blk.ypos = ypos;
-			blk.zpos = zpos;
+			blk.xpos = (uint)xpos;
+			blk.ypos = (uint)ypos;
+			blk.zpos = (uint)zpos;
 
 			blk.data_min = vfloat4.zero();
 			blk.data_mean = vfloat4.zero();
@@ -215,7 +215,7 @@ namespace ASTCEnc
 					// We don't color convert, so rescale the top 8 bits into the full 16 bit dynamic range.
 					if (decode_mode == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB)
 					{
-						colori = asr<8>(colori) * 257;
+						colori = vint4.asr(colori, 8) * 257;
 					}
 
 					vint4 colorf16 = unorm16_to_sf16(colori);
@@ -307,7 +307,7 @@ namespace ASTCEnc
 		#if !ASTCENC_DECOMPRESS_ONLY
 
 		/* See header for documentation. */
-		float compute_symbolic_block_difference_2plane(
+		static float compute_symbolic_block_difference_2plane(
 			ASTCEncConfig config, 
 			BlockSizeDescriptor bsd,
 			SymbolicCompressedBlock scb,
@@ -316,7 +316,7 @@ namespace ASTCEnc
 			// If we detected an error-block, blow up immediately.
 			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
-				return ERROR_CALC_DEFAULT;
+				return Constants.ERROR_CALC_DEFAULT;
 			}
 
 			Debug.Assert(scb.block_mode >= 0);
@@ -357,10 +357,10 @@ namespace ASTCEnc
 				vint4 colori = lerp_color_int(config.profile, ep0, ep1, weight);
 
 				vfloat4 color = int_to_float(colori);
-				vfloat4 oldColor = blk.texel(i);
+				vfloat4 oldColor = blk.Texel(i);
 
 				// Compare error using a perceptual decode metric for RGBM textures
-				if (config.flags & ASTCENC_FLG_MAP_RGBM)
+				if ((config.flags & ASTCENC_FLG_MAP_RGBM) != 0)
 				{
 					// Fail encodings that result in zero weight M pixels. Note that this can cause
 					// "interesting" artifacts if we reject all useful encodings - we typically get max
@@ -370,7 +370,7 @@ namespace ASTCEnc
 					// happen, especially at low bit rates ...
 					if (color.lane(3) == 0.0f)
 					{
-						return -ERROR_CALC_DEFAULT;
+						return -Constants.ERROR_CALC_DEFAULT;
 					}
 
 					// Compute error based on decoded RGBM color
@@ -393,14 +393,14 @@ namespace ASTCEnc
 				error = min(abs(error), 1e15f);
 				error = error * error;
 
-				summa += min(dot(error, blk.channel_weight), ERROR_CALC_DEFAULT);
+				summa += min(dot(error, blk.channel_weight), Constants.ERROR_CALC_DEFAULT);
 			}
 
 			return summa.lane(0);
 		}
 
 		/* See header for documentation. */
-		float compute_symbolic_block_difference_1plane(
+		static float compute_symbolic_block_difference_1plane(
 			ASTCEncConfig config,
 			BlockSizeDescriptor bsd,
 			SymbolicCompressedBlock scb,
@@ -411,7 +411,7 @@ namespace ASTCEnc
 			// If we detected an error-block, blow up immediately.
 			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
-				return ERROR_CALC_DEFAULT;
+				return Constants.ERROR_CALC_DEFAULT;
 			}
 
 			Debug.Assert(scb.block_mode >= 0);
@@ -456,7 +456,7 @@ namespace ASTCEnc
 					vfloat4 oldColor = blk.texel(tix);
 
 					// Compare error using a perceptual decode metric for RGBM textures
-					if (config.flags & ASTCENC_FLG_MAP_RGBM)
+					if ((config.flags & ASTCENC_FLG_MAP_RGBM) != 0)
 					{
 						// Fail encodings that result in zero weight M pixels. Note that this can cause
 						// "interesting" artifacts if we reject all useful encodings - we typically get max
@@ -466,7 +466,7 @@ namespace ASTCEnc
 						// happen, especially at low bit rates ...
 						if (color.lane(3) == 0.0f)
 						{
-							return -ERROR_CALC_DEFAULT;
+							return -Constants.ERROR_CALC_DEFAULT;
 						}
 
 						// Compute error based on decoded RGBM color
@@ -489,7 +489,7 @@ namespace ASTCEnc
 					error = min(abs(error), 1e15f);
 					error = error * error;
 
-					summa += min(dot(error, blk.channel_weight), ERROR_CALC_DEFAULT);
+					summa += min(dot(error, blk.channel_weight), Constants.ERROR_CALC_DEFAULT);
 				}
 			}
 
@@ -497,7 +497,7 @@ namespace ASTCEnc
 		}
 
 		/* See header for documentation. */
-		float compute_symbolic_block_difference_1plane_1partition(
+		static float compute_symbolic_block_difference_1plane_1partition(
 			ASTCEncConfig config,
 			BlockSizeDescriptor bsd,
 			SymbolicCompressedBlock scb,
@@ -506,7 +506,7 @@ namespace ASTCEnc
 			// If we detected an error-block, blow up immediately.
 			if (scb.block_type == SYM_BTYPE.SYM_BTYPE_ERROR)
 			{
-				return ERROR_CALC_DEFAULT;
+				return Constants.ERROR_CALC_DEFAULT;
 			}
 
 			Debug.Assert(scb.block_mode >= 0);
@@ -537,8 +537,8 @@ namespace ASTCEnc
 			// Pre-shift sRGB so things round correctly
 			if (config.profile == ASTCEncProfile.ASTCENC_PRF_LDR_SRGB)
 			{
-				ep0 = asr<8>(ep0);
-				ep1 = asr<8>(ep1);
+				ep0 = vint4.asr(ep0, 8);
+				ep1 = vint4.asr(ep1, 8);
 			}
 
 			// Unpack and compute error for each texel in the partition
@@ -565,10 +565,10 @@ namespace ASTCEnc
 				vint ep0_a = new vint(ep0.lane(3)) * weight0;
 
 				// Shift so things round correctly
-				vint colori_r = asr<6>(ep0_r + ep1_r + vint(32)) * srgb_scale;
-				vint colori_g = asr<6>(ep0_g + ep1_g + vint(32)) * srgb_scale;
-				vint colori_b = asr<6>(ep0_b + ep1_b + vint(32)) * srgb_scale;
-				vint colori_a = asr<6>(ep0_a + ep1_a + vint(32)) * srgb_scale;
+				vint colori_r = vint4.asr(ep0_r + ep1_r + new vint(32), 6) * srgb_scale;
+				vint colori_g = vint4.asr(ep0_g + ep1_g + new vint(32), 6) * srgb_scale;
+				vint colori_b = vint4.asr(ep0_b + ep1_b + new vint(32), 6) * srgb_scale;
+				vint colori_a = vint4.asr(ep0_a + ep1_a + new vint(32), 6) * srgb_scale;
 
 				// Compute color diff
 				vfloat color_r = int_to_float(colori_r);

@@ -147,7 +147,7 @@ namespace ASTCEnc
 		public static vint4 uncontract_color(vint4 input) 
 		{
 			vmask4 mask = new vmask(true, true, false, false);
-			vint4 bc0 = asr<1>(input + input.lane<2>());
+			vint4 bc0 = vint4.asr(input + input.lane(2), 1);
 			return vint4.select(input, bc0, mask);
 		}
 
@@ -294,7 +294,7 @@ namespace ASTCEnc
 			output1 = input;
 			output1.set_lane(3, alpha1);
 
-			output0 = asr<8>(input * scale);
+			output0 = vint4.asr(input * scale, 8);
 			output0.set_lane(3, input.lane(3));
 		}
 
@@ -322,7 +322,7 @@ namespace ASTCEnc
 			output1 = input;
 			output1.set_lane(3, 255);
 
-			output0 = asr<8>(input * scale);
+			output0 = vint4.asr(input * scale, 8);
 			output0.set_lane(3, 255);
 		}
 
