@@ -207,18 +207,43 @@ namespace ASTCEnc
 
 		public static vfloat4 select_msb(vfloat4 a, vfloat4 b, vmask4 cond)
 		{
-			return new vfloat4((cond.m[0] & (int)(0x80000000)) ? b.m[0] : a.m[0],
-						(cond.m[1] & (int)(0x80000000)) ? b.m[1] : a.m[1],
-						(cond.m[2] & (int)(0x80000000)) ? b.m[2] : a.m[2],
-						(cond.m[3] & (int)(0x80000000)) ? b.m[3] : a.m[3]);
+			return new vfloat4((cond.m[0] & (int)(0x80000000)) != 0 ? b.m[0] : a.m[0],
+						(cond.m[1] & (int)(0x80000000) != 0) ? b.m[1] : a.m[1],
+						(cond.m[2] & (int)(0x80000000) != 0) ? b.m[2] : a.m[2],
+						(cond.m[3] & (int)(0x80000000) != 0) ? b.m[3] : a.m[3]);
 		}
 
+		/**
+		* @brief Load a vector of gathered results from an array;
+		*/
 		public static vfloat4 gatherf(float[] basef, vint4 indices)
 		{
 			return new vfloat4(basef[indices.m[0]],
 						basef[indices.m[1]],
 						basef[indices.m[2]],
 						basef[indices.m[3]]);
+		}
+
+		/**
+		* @brief Store a vector to an unaligned memory address.
+		*/
+		public static void store(vfloat4 a, float[] ptr)
+		{
+			ptr[0] = a.m[0];
+			ptr[1] = a.m[1];
+			ptr[2] = a.m[2];
+			ptr[3] = a.m[3];
+		}
+
+		/**
+		* @brief Store a vector to an aligned memory address.
+		*/
+		public static void storea(vfloat4 a, float[] ptr)
+		{
+			ptr[0] = a.m[0];
+			ptr[1] = a.m[1];
+			ptr[2] = a.m[2];
+			ptr[3] = a.m[3];
 		}
 
 		/**

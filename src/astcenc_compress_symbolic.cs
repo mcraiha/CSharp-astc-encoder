@@ -9,7 +9,7 @@ namespace ASTCEnc
 		{
 			// Get the partition descriptor
 			int partition_count = scb.partition_count;
-			PartitionInfo  pt = get_partition_table(bsd, partition_count);
+			PartitionInfo pt = get_partition_table(bsd, partition_count);
 			pt += scb.partition_index;
 
 			// Get the quantization table
@@ -43,7 +43,7 @@ namespace ASTCEnc
 
 			for (int pa_idx = 0; pa_idx < partition_count; pa_idx++)
 			{
-				unpack_color_endpoints(decode_mode,
+				ColorUnquantize.unpack_color_endpoints(decode_mode,
 									scb.color_formats[pa_idx],
 									scb.color_quantization_level,
 									scb.color_values[pa_idx],

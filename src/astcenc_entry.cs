@@ -1172,12 +1172,12 @@ namespace ASTCEnc
 				bool a_hdr;
 				vint4[] endpnt = new vint4[2];
 
-				unpack_color_endpoints(ctx.config.profile,
+				ColorUnquantize.unpack_color_endpoints(ctx.config.profile,
 									scb.color_formats[i],
 									scb.get_color_quant_mode(),
 									scb.color_values[i],
-									rgb_hdr, a_hdr,
-									endpnt[0], endpnt[1]);
+									out rgb_hdr, out a_hdr,
+									out endpnt[0], out endpnt[1]);
 
 				// Store the color endpoint mode info
 				info.color_endpoint_modes[i] = scb.color_formats[i];

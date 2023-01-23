@@ -924,7 +924,7 @@ namespace ASTCEnc
 		}
 
 		/* See header for documentation. */
-		void unpack_color_endpoints(
+		public static void unpack_color_endpoints(
 			ASTCEncProfile decode_mode,
 			EndpointFormats format,
 			QuantMethod quant_level,

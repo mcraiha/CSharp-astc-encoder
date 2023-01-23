@@ -74,7 +74,7 @@ namespace ASTCEnc
 		}
 
 		/* See header for documentation. */
-		public void unpack_weights(
+		public static void unpack_weights(
 			BlockSizeDescriptor bsd,
 			SymbolicCompressedBlock scb,
 			DecimationInfo di,
@@ -279,12 +279,12 @@ namespace ASTCEnc
 				bool rgb_lns;
 				bool a_lns;
 
-				unpack_color_endpoints(decode_mode,
+				ColorUnquantize.unpack_color_endpoints(decode_mode,
 									scb.color_formats[i],
 									scb.get_color_quant_mode(),
 									scb.color_values[i],
-									rgb_lns, a_lns,
-									ep0, ep1);
+									out rgb_lns, out a_lns,
+									out ep0, out ep1);
 
 				vmask4 lns_mask = new vmask4(rgb_lns, rgb_lns, rgb_lns, a_lns);
 
@@ -342,12 +342,12 @@ namespace ASTCEnc
 			bool rgb_lns;
 			bool a_lns;
 
-			unpack_color_endpoints(config.profile,
+			ColorUnquantize.unpack_color_endpoints(config.profile,
 								scb.color_formats[0],
 								scb.get_color_quant_mode(),
 								scb.color_values[0],
-								rgb_lns, a_lns,
-								ep0, ep1);
+								out rgb_lns, out a_lns,
+								out ep0, out ep1);
 
 			// Unpack and compute error for each texel in the partition
 			uint texel_count = bsd.texel_count;
@@ -437,12 +437,12 @@ namespace ASTCEnc
 				bool rgb_lns;
 				bool a_lns;
 
-				unpack_color_endpoints(config.profile,
+				ColorUnquantize.unpack_color_endpoints(config.profile,
 									scb.color_formats[i],
 									scb.get_color_quant_mode(),
 									scb.color_values[i],
-									rgb_lns, a_lns,
-									ep0, ep1);
+									out rgb_lns, out a_lns,
+									out ep0, out ep1);
 
 				// Unpack and compute error for each texel in the partition
 				uint texel_count = pi.partition_texel_count[i];
@@ -453,7 +453,7 @@ namespace ASTCEnc
 												new vint4(plane1_weights[tix]));
 
 					vfloat4 color = int_to_float(colori);
-					vfloat4 oldColor = blk.texel(tix);
+					vfloat4 oldColor = blk.Texel((int)tix);
 
 					// Compare error using a perceptual decode metric for RGBM textures
 					if ((config.flags & ASTCENC_FLG_MAP_RGBM) != 0)
@@ -526,12 +526,12 @@ namespace ASTCEnc
 			bool rgb_lns;
 			bool a_lns;
 
-			unpack_color_endpoints(config.profile,
+			ColorUnquantize.unpack_color_endpoints(config.profile,
 								scb.color_formats[0],
 								scb.get_color_quant_mode(),
 								scb.color_values[0],
-								rgb_lns, a_lns,
-								ep0, ep1);
+								out rgb_lns, out a_lns,
+								out ep0, out ep1);
 
 
 			// Pre-shift sRGB so things round correctly
