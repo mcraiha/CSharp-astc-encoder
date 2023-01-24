@@ -247,6 +247,107 @@ namespace ASTCEnc
 		}
 
 		/**
+		* @brief Return a integer value for a float vector, using truncation.
+		*/
+		public static vint4 float_to_int(vfloat4 a)
+		{
+			return new vint4((int)(a.m[0]),
+						(int)(a.m[1]),
+						(int)(a.m[2]),
+						(int)(a.m[3]));
+		}
+
+		/**f
+		* @brief Return a integer value for a float vector, using round-to-nearest.
+		*/
+		public static vint4 float_to_int_rtn(vfloat4 a)
+		{
+			return new vint4((int)(a.m[0] + 0.5f),
+						(int)(a.m[1] + 0.5f),
+						(int)(a.m[2] + 0.5f),
+						(int)(a.m[3] + 0.5f));
+		}
+
+		/**
+		* @brief Return a float value for a integer vector.
+		*/
+		public static vfloat4 int_to_float(vint4 a)
+		{
+			return new vfloat4((float)(a.m[0]),
+						(float)(a.m[1]),
+						(float)(a.m[2]),
+						(float)(a.m[3]));
+		}
+
+		/**
+		* @brief Return a float16 value for a float vector, using round-to-nearest.
+		*/
+		public static vint4 float_to_float16(vfloat4 a)
+		{
+			return new vint4(
+				ASTCMathSoftFloat.float_to_sf16(a.lane(0)),
+				ASTCMathSoftFloat.float_to_sf16(a.lane(1)),
+				ASTCMathSoftFloat.float_to_sf16(a.lane(2)),
+				ASTCMathSoftFloat.float_to_sf16(a.lane(3)));
+		}
+
+		/**
+		* @brief Return a float16 value for a float scalar, using round-to-nearest.
+		*/
+		static ushort float_to_float16(float a)
+		{
+			return ASTCMathSoftFloat.float_to_sf16(a);
+		}
+
+		/**
+		* @brief Return a float value for a float16 vector.
+		*/
+		public static vfloat4 float16_to_float(vint4 a)
+		{
+			return new vfloat4(
+				ASTCMathSoftFloat.sf16_to_float((ushort)(a.lane(0))),
+				ASTCMathSoftFloat.sf16_to_float((ushort)(a.lane(1))),
+				ASTCMathSoftFloat.sf16_to_float((ushort)(a.lane(2))),
+				ASTCMathSoftFloat.sf16_to_float((ushort)(a.lane(3))));
+		}
+
+		/**
+		* @brief Return a float value for a float16 scalar.
+		*/
+		public static float float16_to_float(ushort a)
+		{
+			return ASTCMathSoftFloat.sf16_to_float(a);
+		}
+
+		/**
+		* @brief Return a float value as an integer bit pattern (i.e. no conversion).
+		*
+		* It is a common trick to convert floats into integer bit patterns, perform
+		* some bit hackery based on knowledge they are IEEE 754 layout, and then
+		* convert them back again. This is the first half of that flip.
+		*/
+		public static vint4 float_as_int(vfloat4 a)
+		{
+			vint4 r;
+			memcpy(r.m, a.m, 4 * 4);
+			return r;
+		}
+
+		/**
+		* @brief Return a integer value as a float bit pattern (i.e. no conversion).
+		*
+		* It is a common trick to convert floats into integer bit patterns, perform
+		* some bit hackery based on knowledge they are IEEE 754 layout, and then
+		* convert them back again. This is the second half of that flip.
+		*/
+		public static vfloat4 int_as_float(vint4 a)
+		{
+			vfloat4 r;
+			memcpy(r.m, a.m, 4 * 4);
+			return r;
+		}
+
+		/**
 		* @brief Return the absolute value of the float vector.
 		*/
 		public static vfloat4 abs(vfloat4 a)

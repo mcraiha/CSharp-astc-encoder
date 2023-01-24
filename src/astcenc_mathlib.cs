@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace ASTCEnc
 {
@@ -133,8 +134,37 @@ namespace ASTCEnc
 		public vfloat4 bs;
 	};
 
+	[StructLayout(LayoutKind.Explicit)] 
+	public struct if32
+	{
+		public if32()
+		{
+			s = 0;
+			f = 0.0f;
+			u = 0;
+		}
+		[FieldOffset(0)] public uint u;
+		[FieldOffset(0)] public int s;
+		[FieldOffset(0)] public float f;
+	}
+
 	public static class ASTCMath
 	{
+		const float PI          = 3.14159265358979323846f;
+		const float PI_OVER_TWO = 1.57079632679489661923f;
+
+		/**
+		* @brief SP float absolute value.
+		*
+		* @param v   The value to make absolute.
+		*
+		* @return The absolute value.
+		*/
+		static float fabs(float v)
+		{
+			return MathF.Abs(v);
+		}
+
 		/*public static T min<T>(T p, T q)
 		{
 			return p < q ? p : q;

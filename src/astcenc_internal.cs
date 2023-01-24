@@ -362,6 +362,11 @@ namespace ASTCEnc
 		*     texel_weights_float_texel[i][j][.] = texel_weights_float[.][weight_texel[i][j]]
 		*/
 		public float[,,] texel_weights_float_texel = new float[Constants.BLOCK_MAX_WEIGHTS, Constants.BLOCK_MAX_TEXELS, 4];
+
+		public DecimationInfo()
+		{
+
+		}
 	}
 
 
@@ -428,7 +433,7 @@ namespace ASTCEnc
 		*/
 		public void set_ref_1_plane(QuantMethod weight_quant)
 		{
-			refprec_1_plane |= (1 << weight_quant);
+			refprec_1_plane |= (1 << (int)weight_quant);
 		}
 
 		/**
@@ -438,7 +443,7 @@ namespace ASTCEnc
 		*/
 		public bool is_ref_1_plane(QuantMethod max_weight_quant)
 		{
-			ushort mask = (ushort)((1 << (max_weight_quant + 1)) - 1);
+			ushort mask = (ushort)((1 << ((int)max_weight_quant + 1)) - 1);
 			return (refprec_1_plane & mask) != 0;
 		}
 
@@ -449,7 +454,7 @@ namespace ASTCEnc
 		*/
 		public void set_ref_2_plane(QuantMethod weight_quant)
 		{
-			refprec_2_planes |= (ushort)(1 << weight_quant);
+			refprec_2_planes |= (ushort)(1 << (int)weight_quant);
 		}
 
 		/**
@@ -459,7 +464,7 @@ namespace ASTCEnc
 		*/
 		public bool is_ref_2_plane(QuantMethod max_weight_quant)
 		{
-			ushort mask = (ushort)((1 << (max_weight_quant + 1)) - 1);
+			ushort mask = (ushort)((1 << ((int)max_weight_quant + 1)) - 1);
 			return (refprec_2_planes & mask) != 0;
 		}
 	}
@@ -566,12 +571,9 @@ namespace ASTCEnc
 		public ulong[,] coverage_bitmaps_3 = new ulong[Constants.BLOCK_MAX_PARTITIONINGS, 3]; 
 		public ulong[,] coverage_bitmaps_4 = new ulong[Constants.BLOCK_MAX_PARTITIONINGS, 4]; 
 
-		public BlockSizeDescriptor(bool notUsed)
+		public BlockSizeDescriptor()
 		{
-			this.xdim = 0;
-			this.ydim = 0;
-			this.zdim = 0;
-			this.texel_count = 0;
+			
 		}
 
 		public BlockMode get_block_mode(uint block_mode)
@@ -666,47 +668,6 @@ namespace ASTCEnc
 			return vfloat4.vfloat3(data_r[index],
 		               data_g[index],
 		               data_b[index]);
-		}
-	}
-
-	public struct ErrorWeightBlock
-	{
-		public vfloat4[] error_weights;
-		public float[] texel_weight;
-		public float[] texel_weight_gba;
-		public float[] texel_weight_rba;
-		public float[] texel_weight_rga;
-		public float[] texel_weight_rgb;
-
-		public float[] texel_weight_rg;
-		public float[] texel_weight_rb;
-		public float[] texel_weight_gb;
-		public float[] texel_weight_ra;
-
-		public float[] texel_weight_r;
-		public float[] texel_weight_g;
-		public float[] texel_weight_b;
-		public float[] texel_weight_a;
-
-		public ErrorWeightBlock()
-		{
-			this.error_weights = new vfloat4[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight = new float[Constants.MAX_TEXELS_PER_BLOCK];
-
-			this.texel_weight_gba = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_rba = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_rga = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_rgb = new float[Constants.MAX_TEXELS_PER_BLOCK];
-
-			this.texel_weight_rg = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_rb = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_gb = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_ra = new float[Constants.MAX_TEXELS_PER_BLOCK];
-
-			this.texel_weight_r = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_g = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_b = new float[Constants.MAX_TEXELS_PER_BLOCK];
-			this.texel_weight_a = new float[Constants.MAX_TEXELS_PER_BLOCK];
 		}
 	}
 

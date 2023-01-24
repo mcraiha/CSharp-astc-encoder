@@ -92,29 +92,29 @@ namespace ASTCEnc
 
         static uint rtne_shift32(uint inp, uint shamt)
         {
-            uint vl1 = 1 << shamt;
+            uint vl1 = (uint)(1 << (int)shamt);
             uint inp2 = inp + (vl1 >> 1);	/* added 0.5 ULP */
             uint msk = (inp | 1) & vl1;	/* nonzero if odd. '| 1' forces it to 1 if the shamt is 0. */
             msk--;						/* negative if even, nonnegative if odd. */
             inp2 -= (msk >> 31);		/* subtract epsilon before shift if even. */
-            inp2 >>= shamt;
+            inp2 >>= (int)shamt;
             return inp2;
         }
 
         static uint rtna_shift32(uint inp, uint shamt)
         {
-            uint vl1 = (1 << shamt) >> 1;
+            uint vl1 = (uint)((1 << (int)shamt) >> 1);
             inp += vl1;
-            inp >>= shamt;
+            inp >>= (int)shamt;
             return inp;
         }
 
         static uint rtup_shift32(uint inp, uint shamt)
         {
-            uint vl1 = 1 << shamt;
+            uint vl1 = (uint)(1 << (int)shamt);
             inp += vl1;
             inp--;
-            inp >>= shamt;
+            inp >>= (int)shamt;
             return inp;
         }
 
@@ -175,7 +175,7 @@ namespace ASTCEnc
             uint sign = (inpx & 0x8000) << 16;
             uint mskval = inpx & 0x7FFF;
             uint leadingzeroes = clz32(mskval);
-            mskval <<= leadingzeroes;
+            mskval <<= (int)leadingzeroes;
             return (mskval >> 8) + ((0x85 - leadingzeroes) << 23) + sign;
         }
 
@@ -234,7 +234,7 @@ namespace ASTCEnc
             };
 
             uint p;
-            uint idx = rmode + tab[inp >> 23];
+            uint idx = (uint)rmode + tab[inp >> 23];
             uint vlx = tabx[idx];
             switch (idx)
             {
@@ -360,7 +360,7 @@ namespace ASTCEnc
             case 27:
                 /* denormal, round towards zero. */
                 p = 126 - ((inp >> 23) & 0xFF);
-                return (sf16)((((inp & 0x7FFFFF) + 0x800000) >> p) | vlx);
+                return (sf16)((((inp & 0x7FFFFF) + 0x800000) >> (int)p) | vlx);
             case 20:
             case 26:
                 /* denormal, round away from zero. */
@@ -382,19 +382,19 @@ namespace ASTCEnc
         }
 
         /* convert from soft-float to native-float */
-        float sf16_to_float(ushort p)
+        public static float sf16_to_float(ushort p)
         {
-            if32 i;
+            if32 i = new if32();
             i.u = sf16_to_sf32(p);
             return i.f;
         }
 
         /* convert from native-float to soft-float */
-        ushort float_to_sf16(float p)
+        public static ushort float_to_sf16(float p)
         {
-            if32 i;
+            if32 i = new if32();
             i.f = p;
-            return sf32_to_sf16(i.u, SF_NEARESTEVEN);
+            return sf32_to_sf16(i.u, roundmode.SF_NEARESTEVEN);
         }
     }
 }
