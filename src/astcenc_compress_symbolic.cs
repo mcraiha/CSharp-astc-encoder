@@ -48,8 +48,8 @@ namespace ASTCEnc
 			vmask4 sep_mask = vint4.lane_id() == new vint4(component_plane2);
 
 			result.partition_count = partition_count;
-			result.endpt0[0] = select(ep_plane1.endpt0[0], ep_plane2.endpt0[0], sep_mask);
-			result.endpt1[0] = select(ep_plane1.endpt1[0], ep_plane2.endpt1[0], sep_mask);
+			result.endpt0[0] = vfloat4.select(ep_plane1.endpt0[0], ep_plane2.endpt0[0], sep_mask);
+			result.endpt1[0] = vfloat4.select(ep_plane1.endpt1[0], ep_plane2.endpt1[0], sep_mask);
 		}
 
 		/**
@@ -90,10 +90,10 @@ namespace ASTCEnc
 			// Decode the color endpoints
 			bool rgb_hdr;
 			bool alpha_hdr;
-			vint4 endpnt0[Constants.BLOCK_MAX_PARTITIONS];
-			vint4 endpnt1[Constants.BLOCK_MAX_PARTITIONS];
-			vfloat4 endpnt0f[Constants.BLOCK_MAX_PARTITIONS];
-			vfloat4 offset[Constants.BLOCK_MAX_PARTITIONS];
+			vint4[] endpnt0 = new vint4[Constants.BLOCK_MAX_PARTITIONS];
+			vint4[] endpnt1 = new vint4[Constants.BLOCK_MAX_PARTITIONS];
+			vfloat4[] endpnt0f = new vfloat4[Constants.BLOCK_MAX_PARTITIONS];
+			vfloat4[] offset = new vfloat4[Constants.BLOCK_MAX_PARTITIONS];
 
 			////promise(partition_count > 0);
 
@@ -103,9 +103,9 @@ namespace ASTCEnc
 									scb.color_formats[pa_idx],
 									scb.get_color_quant_mode(),
 									scb.color_values[pa_idx],
-									rgb_hdr, alpha_hdr,
-									endpnt0[pa_idx],
-									endpnt1[pa_idx]);
+									out rgb_hdr, out alpha_hdr,
+									out endpnt0[pa_idx],
+									out endpnt1[pa_idx]);
 			}
 
 			byte[] dec_weights_uquant = scb.weights;
@@ -118,10 +118,10 @@ namespace ASTCEnc
 				{
 					// Compute the endpoint delta for all components in current plane
 					vint4 epd = endpnt1[pa_idx] - endpnt0[pa_idx];
-					epd = select(epd, vint4.zero(), plane_mask);
+					epd = vfloat4.select(epd, vint4.zero(), plane_mask);
 
-					endpnt0f[pa_idx] = int_to_float(endpnt0[pa_idx]);
-					offset[pa_idx] = int_to_float(epd) * (1.0f / 64.0f);
+					endpnt0f[pa_idx] = vfloat4.int_to_float(endpnt0[pa_idx]);
+					offset[pa_idx] = vfloat4.int_to_float(epd) * (1.0f / 64.0f);
 				}
 
 				// For each weight compute previous, current, and next errors
@@ -131,8 +131,8 @@ namespace ASTCEnc
 					int uqw = dec_weights_uquant[texel];
 
 					uint prev_and_next = qat.prev_next_values[uqw];
-					int uqw_down = prev_and_next & 0xFF;
-					int uqw_up = (prev_and_next >> 8) & 0xFF;
+					int uqw_down = (int)(prev_and_next & 0xFF);
+					int uqw_up = (int)((prev_and_next >> 8) & 0xFF);
 
 					// Interpolate the colors to create the diffs
 					float weight_base = (float)(uqw);
@@ -144,7 +144,7 @@ namespace ASTCEnc
 					vfloat4 color_base   = endpnt0f[partition];
 
 					vfloat4 color = color_base + color_offset * weight_base;
-					vfloat4 orig_color   = blk.texel(texel);
+					vfloat4 orig_color   = blk.Texel((int)texel);
 					vfloat4 error_weight = blk.channel_weight;
 
 					vfloat4 color_diff      = color - orig_color;
@@ -169,7 +169,7 @@ namespace ASTCEnc
 				}
 
 				// Prepare iteration for plane 2
-				dec_weights_uquant += WEIGHTS_PLANE2_OFFSET;
+				dec_weights_uquant += Constants.WEIGHTS_PLANE2_OFFSET;
 				plane_mask = ~plane_mask;
 			}
 
@@ -244,10 +244,10 @@ namespace ASTCEnc
 				{
 					// Compute the endpoint delta for all components in current plane
 					vint4 epd = endpnt1[pa_idx] - endpnt0[pa_idx];
-					epd = select(epd, vint4.zero(), plane_mask);
+					epd = vfloat4.select(epd, vint4.zero(), plane_mask);
 
-					endpnt0f[pa_idx] = int_to_float(endpnt0[pa_idx]);
-					offset[pa_idx] = int_to_float(epd) * (1.0f / 64.0f);
+					endpnt0f[pa_idx] = vfloat4.int_to_float(endpnt0[pa_idx]);
+					offset[pa_idx] = vfloat4.int_to_float(epd) * (1.0f / 64.0f);
 				}
 
 				// Create an unquantized weight grid for this decimation level
@@ -255,7 +255,7 @@ namespace ASTCEnc
 				for (uint we_idx = 0; we_idx < weight_count; we_idx += ASTCENC_SIMD_WIDTH)
 				{
 					vint unquant_value = new vint(dec_weights_uquant + we_idx);
-					vfloat unquant_valuef = int_to_float(unquant_value);
+					vfloat unquant_valuef = vfloat4.int_to_float(unquant_value);
 					storea(unquant_valuef, uq_weightsf + we_idx);
 				}
 
@@ -272,16 +272,16 @@ namespace ASTCEnc
 					float uqw_diff_down = uqw_down - uqw_base;
 					float uqw_diff_up = uqw_up - uqw_base;
 
-					vfloat4 error_basev = vfloat4::zero();
-					vfloat4 error_downv = vfloat4::zero();
-					vfloat4 error_upv = vfloat4::zero();
+					vfloat4 error_basev = vfloat4.zero();
+					vfloat4 error_downv = vfloat4.zero();
+					vfloat4 error_upv = vfloat4.zero();
 
 					// Interpolate the colors to create the diffs
 					uint texels_to_evaluate = di.weight_texel_count[we_idx];
 					//promise(texels_to_evaluate > 0);
 					for (uint te_idx = 0; te_idx < texels_to_evaluate; te_idx++)
 					{
-						uint texel = di.weight_texel[te_idx][we_idx];
+						uint texel = di.weight_texel[te_idx, we_idx];
 
 						byte[] texel_weights = di.texel_weights_texel[we_idx][te_idx];
 						float[] texel_weights_float = di.texel_weights_float_texel[we_idx][te_idx];
@@ -305,7 +305,7 @@ namespace ASTCEnc
 						vfloat4 color_base   = endpnt0f[partition];
 
 						vfloat4 color = color_base + color_offset * weight_base;
-						vfloat4 orig_color = blk.texel(texel);
+						vfloat4 orig_color = blk.Texel((int)texel);
 
 						vfloat4 color_diff      = color - orig_color;
 						vfloat4 color_down_diff = color_diff + color_offset * weight_down;
@@ -317,9 +317,9 @@ namespace ASTCEnc
 					}
 
 					vfloat4 error_weight = blk.channel_weight;
-					float error_base = hadd_s(error_basev * error_weight);
-					float error_down = hadd_s(error_downv * error_weight);
-					float error_up   = hadd_s(error_upv   * error_weight);
+					float error_base = vfloat4.hadd_s(error_basev * error_weight);
+					float error_down = vfloat4.hadd_s(error_downv * error_weight);
+					float error_up   = vfloat4.hadd_s(error_upv   * error_weight);
 
 					// Check if the prev or next error is better, and if so use it
 					if ((error_up < error_base) && (error_up < error_down) && (uqw < 64))
@@ -337,7 +337,7 @@ namespace ASTCEnc
 				}
 
 				// Prepare iteration for plane 2
-				dec_weights_uquant += WEIGHTS_PLANE2_OFFSET;
+				dec_weights_uquant += Constants.WEIGHTS_PLANE2_OFFSET;
 				plane_mask = ~plane_mask;
 			}
 
@@ -373,7 +373,7 @@ namespace ASTCEnc
 			//promise(config.tune_candidate_limit > 0);
 			//promise(config.tune_refinement_limit > 0);
 
-			int max_weight_quant = ASTCMath.min((int)(QUANT_32), quant_limit);
+			int max_weight_quant = ASTCMath.min((int)(QuantMethod.QUANT_32), quant_limit);
 
 			auto compute_difference = &compute_symbolic_block_difference_1plane;
 			if ((partition_count == 1) && !(config.flags & ASTCENC_FLG_MAP_RGBM))
@@ -413,24 +413,24 @@ namespace ASTCEnc
 
 			// Compute maximum colors for the endpoints and ideal weights, then for each endpoint and ideal
 			// weight pair, compute the smallest weight that will result in a color value greater than 1
-			vfloat4 min_ep(10.0f);
+			vfloat4 min_ep = new vfloat4(10.0f);
 			for (uint i = 0; i < partition_count; i++)
 			{
-				vfloat4 ep = (vfloat4(1.0f) - ei.ep.endpt0[i]) / (ei.ep.endpt1[i] - ei.ep.endpt0[i]);
+				vfloat4 ep = (new vfloat4(1.0f) - ei.ep.endpt0[i]) / (ei.ep.endpt1[i] - ei.ep.endpt0[i]);
 
-				vmask4 use_ep = (ep > vfloat4(0.5f)) & (ep < min_ep);
-				min_ep = select(min_ep, ep, use_ep);
+				vmask4 use_ep = (ep > new vfloat4(0.5f)) & (ep < min_ep);
+				min_ep = vfloat4.select(min_ep, ep, use_ep);
 			}
 
 			float min_wt_cutoff = hmin_s(min_ep);
 
 			// For each mode, use the angular method to compute a shift
-			compute_angular_endpoints_1plane(
+			ASTCEncWeightAlign.compute_angular_endpoints_1plane(
 				only_always, bsd, dec_weights_ideal, max_weight_quant, tmpbuf);
 
 			float[] weight_low_value = tmpbuf.weight_low_value1;
 			float[] weight_high_value = tmpbuf.weight_high_value1;
-			int8_t* qwt_bitcounts = tmpbuf.qwt_bitcounts;
+			sbyte[] qwt_bitcounts = tmpbuf.qwt_bitcounts;
 			float[] qwt_errors = tmpbuf.qwt_errors;
 
 			// For each mode (which specifies a decimation and a quantization):
@@ -439,8 +439,8 @@ namespace ASTCEnc
 			//     * Compute quantization errors for the mode
 
 
-			sbyte[] free_bits_for_partition_count[4] {
-				115 - 4, 111 - 4 - PARTITION_INDEX_BITS, 108 - 4 - PARTITION_INDEX_BITS, 105 - 4 - PARTITION_INDEX_BITS
+			sbyte[] free_bits_for_partition_count = new sbyte[4] {
+				115 - 4, 111 - 4 - Constants.PARTITION_INDEX_BITS, 108 - 4 - Constants.PARTITION_INDEX_BITS, 105 - 4 - Constants.PARTITION_INDEX_BITS
 			};
 
 			uint max_block_modes = only_always ? bsd.block_mode_count_1plane_always
@@ -472,7 +472,7 @@ namespace ASTCEnc
 				int decimation_mode = bm.decimation_mode;
 				DecimationInfo di = bsd.get_decimation_info(decimation_mode);
 
-				qwt_bitcounts[i] = static_cast<int8_t>(bitcount);
+				qwt_bitcounts[i] = (sbyte)(bitcount);
 
 				float[] dec_weights_uquantf = new float[Constants.BLOCK_MAX_WEIGHTS];
 
@@ -734,13 +734,13 @@ namespace ASTCEnc
 			//promise(config.tune_refinement_limit > 0);
 			//promise(bsd.decimation_mode_count_selected > 0);
 			
-			int max_weight_quant = ASTCMath.min((int)(QUANT_32), quant_limit);
+			int max_weight_quant = ASTCMath.min((int)(QuantMethod.QUANT_32), quant_limit);
 
 			// Compute ideal weights and endpoint colors, with no quantization or decimation
 			EndpointsAndWeights ei1 = tmpbuf.ei1;
 			EndpointsAndWeights ei2 = tmpbuf.ei2;
 
-			compute_ideal_colors_and_weights_2planes(bsd, blk, plane2_component, ei1, ei2);
+			IdealEndpointsAndWeights.compute_ideal_colors_and_weights_2planes(bsd, blk, plane2_component, ei1, ei2);
 
 			// Compute ideal weights and endpoint colors for every decimation
 			float[] dec_weights_ideal = tmpbuf.dec_weights_ideal;
@@ -757,40 +757,40 @@ namespace ASTCEnc
 
 				DecimationInfo di = bsd.get_decimation_info(i);
 
-				compute_ideal_weights_for_decimation(
+				IdealEndpointsAndWeights.compute_ideal_weights_for_decimation(
 					ei1,
 					di,
 					dec_weights_ideal + i * Constants.BLOCK_MAX_WEIGHTS);
 
-				compute_ideal_weights_for_decimation(
+				IdealEndpointsAndWeights.compute_ideal_weights_for_decimation(
 					ei2,
 					di,
-					dec_weights_ideal + i * Constants.BLOCK_MAX_WEIGHTS + WEIGHTS_PLANE2_OFFSET);
+					dec_weights_ideal + i * Constants.BLOCK_MAX_WEIGHTS + Constants.WEIGHTS_PLANE2_OFFSET);
 			}
 
 			// Compute maximum colors for the endpoints and ideal weights, then for each endpoint and ideal
 			// weight pair, compute the smallest weight that will result in a color value greater than 1
-			vfloat4 min_ep1(10.0f);
-			vfloat4 min_ep2(10.0f);
+			vfloat4 min_ep1 = new vfloat4(10.0f);
+			vfloat4 min_ep2 = new vfloat4(10.0f);
 
-			vfloat4 ep1 = (vfloat4(1.0f) - ei1.ep.endpt0[0]) / (ei1.ep.endpt1[0] - ei1.ep.endpt0[0]);
-			vmask4 use_ep1 = (ep1 > vfloat4(0.5f)) & (ep1 < min_ep1);
-			min_ep1 = select(min_ep1, ep1, use_ep1);
+			vfloat4 ep1 = (new vfloat4(1.0f) - ei1.ep.endpt0[0]) / (ei1.ep.endpt1[0] - ei1.ep.endpt0[0]);
+			vmask4 use_ep1 = (ep1 > new vfloat4(0.5f)) & (ep1 < min_ep1);
+			min_ep1 = vfloat4.select(min_ep1, ep1, use_ep1);
 
-			vfloat4 ep2 = (vfloat4(1.0f) - ei2.ep.endpt0[0]) / (ei2.ep.endpt1[0] - ei2.ep.endpt0[0]);
-			vmask4 use_ep2 = (ep2 > vfloat4(0.5f)) & (ep2 < min_ep2);
-			min_ep2 = select(min_ep2, ep2, use_ep2);
+			vfloat4 ep2 = (new vfloat4(1.0f) - ei2.ep.endpt0[0]) / (ei2.ep.endpt1[0] - ei2.ep.endpt0[0]);
+			vmask4 use_ep2 = (ep2 > new vfloat4(0.5f)) & (ep2 < min_ep2);
+			min_ep2 = vfloat4.select(min_ep2, ep2, use_ep2);
 
-			vfloat4 err_max(ERROR_CALC_DEFAULT);
-			vmask4 err_mask = vint4.lane_id() == vint4(plane2_component);
+			vfloat4 err_max = new vfloat4(ERROR_CALC_DEFAULT);
+			vmask4 err_mask = vint4.lane_id() == new vint4(plane2_component);
 
 			// Set the plane2 component to max error in ep1
-			min_ep1 = select(min_ep1, err_max, err_mask);
+			min_ep1 = vfloat4.select(min_ep1, err_max, err_mask);
 
 			float min_wt_cutoff1 = hmin_s(min_ep1);
 
 			// Set the minwt2 to the plane2 component min in ep2
-			float min_wt_cutoff2 = hmin_s(select(err_max, min_ep2, err_mask));
+			float min_wt_cutoff2 = hmin_s(vfloat4.select(err_max, min_ep2, err_mask));
 
 			compute_angular_endpoints_2planes(
 				bsd, dec_weights_ideal, max_weight_quant, tmpbuf);
@@ -805,7 +805,7 @@ namespace ASTCEnc
 			float[] weight_low_value2 = tmpbuf.weight_low_value2;
 			float[] weight_high_value2 = tmpbuf.weight_high_value2;
 
-			int8_t* qwt_bitcounts = tmpbuf.qwt_bitcounts;
+			sbyte[] qwt_bitcounts = tmpbuf.qwt_bitcounts;
 			float[] qwt_errors = tmpbuf.qwt_errors;
 
 			uint start_2plane = bsd.block_mode_count_1plane_selected;
@@ -814,7 +814,7 @@ namespace ASTCEnc
 			for (uint i = start_2plane; i < end_2plane; i++)
 			{
 				BlockMode bm = bsd.block_modes[i];
-				assert(bm.is_dual_plane);
+				Debug.Assert(bm.is_dual_plane);
 
 				if (bm.quant_mode > max_weight_quant)
 				{
@@ -822,7 +822,7 @@ namespace ASTCEnc
 					continue;
 				}
 
-				qwt_bitcounts[i] = static_cast<int8_t>(109 - bm.weight_bits);
+				qwt_bitcounts[i] = (sbyte)(109 - bm.weight_bits);
 
 				if (weight_high_value1[i] > 1.02f * min_wt_cutoff1)
 				{
@@ -853,9 +853,9 @@ namespace ASTCEnc
 					di,
 					weight_low_value2[i],
 					weight_high_value2[i],
-					dec_weights_ideal + Constants.BLOCK_MAX_WEIGHTS * decimation_mode + WEIGHTS_PLANE2_OFFSET,
-					dec_weights_uquantf + WEIGHTS_PLANE2_OFFSET,
-					dec_weights_uquant + Constants.BLOCK_MAX_WEIGHTS * i + WEIGHTS_PLANE2_OFFSET,
+					dec_weights_ideal + Constants.BLOCK_MAX_WEIGHTS * decimation_mode + Constants.WEIGHTS_PLANE2_OFFSET,
+					dec_weights_uquantf + Constants.WEIGHTS_PLANE2_OFFSET,
+					dec_weights_uquant + Constants.BLOCK_MAX_WEIGHTS * i + Constants.WEIGHTS_PLANE2_OFFSET,
 					bm.get_weight_quant_mode());
 
 				// Compute weight quantization errors for the block mode
@@ -864,7 +864,7 @@ namespace ASTCEnc
 					ei2,
 					di,
 					dec_weights_uquantf,
-					dec_weights_uquantf + WEIGHTS_PLANE2_OFFSET);
+					dec_weights_uquantf + Constants.WEIGHTS_PLANE2_OFFSET);
 			}
 
 			// Decide the optimal combination of color endpoint encodings and weight encodings
@@ -914,19 +914,19 @@ namespace ASTCEnc
 				endpoints workep = epm;
 
 				byte[] u8_weight1_src = dec_weights_uquant + Constants.BLOCK_MAX_WEIGHTS * bm_packed_index;
-				byte[] u8_weight2_src = dec_weights_uquant + Constants.BLOCK_MAX_WEIGHTS * bm_packed_index + WEIGHTS_PLANE2_OFFSET;
+				byte[] u8_weight2_src = dec_weights_uquant + Constants.BLOCK_MAX_WEIGHTS * bm_packed_index + Constants.WEIGHTS_PLANE2_OFFSET;
 
 				for (int j = 0; j < di.weight_count; j++)
 				{
 					workscb.weights[j] = u8_weight1_src[j];
-					workscb.weights[j + WEIGHTS_PLANE2_OFFSET] = u8_weight2_src[j];
+					workscb.weights[j + Constants.WEIGHTS_PLANE2_OFFSET] = u8_weight2_src[j];
 				}
 
 				for (uint l = 0; l < config.tune_refinement_limit; l++)
 				{
 					recompute_ideal_colors_2planes(
 						blk, bsd, di,
-						workscb.weights, workscb.weights + WEIGHTS_PLANE2_OFFSET,
+						workscb.weights, workscb.weights + Constants.WEIGHTS_PLANE2_OFFSET,
 						workep, rgbs_color, rgbo_color, plane2_component);
 
 					// Quantize the chosen color
@@ -944,7 +944,7 @@ namespace ASTCEnc
 					workscb.quant_mode = color_quant_level[i];
 					workscb.color_formats_matched = 0;
 					workscb.block_mode = qw_bm.mode_index;
-					workscb.plane2_component = static_cast<int8_t>(plane2_component);
+					workscb.plane2_component = (sbyte)(plane2_component);
 					workscb.block_type = SYM_BTYPE_NONCONST;
 
 					// Pre-realign test
@@ -1061,7 +1061,7 @@ namespace ASTCEnc
 			float rs = 0.0f;
 			float gs = 0.0f;
 			float bs = 0.0f;
-			float as = 0.0f;
+			float ass = 0.0f;
 			float rr_var = 0.0f;
 			float gg_var = 0.0f;
 			float bb_var = 0.0f;
@@ -1078,7 +1078,7 @@ namespace ASTCEnc
 			//promise(texels_per_block > 0);
 			for (int i = 0; i < texels_per_block; i++)
 			{
-				float weight = hadd_s(blk.channel_weight) / 4.0f;
+				float weight = vfloat4.hadd_s(blk.channel_weight) / 4.0f;
 				Debug.Assert(weight >= 0.0f);
 				weight_sum += weight;
 
@@ -1106,7 +1106,7 @@ namespace ASTCEnc
 				ba_cov += a * bw;
 
 				float aw = a * weight;
-				as += aw;
+				ass += aw;
 				aa_var += a * aw;
 			}
 
@@ -1115,16 +1115,16 @@ namespace ASTCEnc
 			rr_var -= rs * (rs * rpt);
 			rg_cov -= gs * (rs * rpt);
 			rb_cov -= bs * (rs * rpt);
-			ra_cov -= as * (rs * rpt);
+			ra_cov -= ass * (rs * rpt);
 
 			gg_var -= gs * (gs * rpt);
 			gb_cov -= bs * (gs * rpt);
-			ga_cov -= as * (gs * rpt);
+			ga_cov -= ass * (gs * rpt);
 
 			bb_var -= bs * (bs * rpt);
-			ba_cov -= as * (bs * rpt);
+			ba_cov -= ass * (bs * rpt);
 
-			aa_var -= as * (as * rpt);
+			aa_var -= ass * (ass * rpt);
 
 			// These will give a NaN if a channel is constant - these are fixed up in the next step
 			rg_cov *= astc::rsqrt(rr_var * gg_var);
@@ -1168,14 +1168,14 @@ namespace ASTCEnc
 
 		/* See header for documentation. */
 		void compress_block(
-			astcenc_contexti& ctx,
+			astcenc_contexti ctx,
 			ImageBlock blk,
 			physical_compressed_block& pcb,
 			compression_working_buffers& tmpbuf)
 		{
 			ASTCEncProfile decode_mode = ctx.config.profile;
 			symbolic_compressed_block scb;
-			const BlockSizeDescriptor bsd = *ctx.bsd;
+			BlockSizeDescriptor bsd = *ctx.bsd;
 			float lowest_correl;
 
 			TRACE_NODE(node0, "block");
@@ -1209,7 +1209,7 @@ namespace ASTCEnc
 		#if ASTCENC_DIAGNOSTICS
 			// Do this early in diagnostic builds so we can dump uniform metrics
 			// for every block. Do it later in release builds to avoid redundant work!
-			float error_weight_sum = hadd_s(blk.channel_weight) * bsd.texel_count;
+			float error_weight_sum = vfloat4.hadd_s(blk.channel_weight) * bsd.texel_count;
 			float error_threshold = ctx.config.tune_db_limit
 								* error_weight_sum
 								* block_is_l_scale
@@ -1253,7 +1253,7 @@ namespace ASTCEnc
 			}
 
 		#if !ASTCENC_DIAGNOSTICS
-			float error_weight_sum = hadd_s(blk.channel_weight) * bsd.texel_count;
+			float error_weight_sum = vfloat4.hadd_s(blk.channel_weight) * bsd.texel_count;
 			float error_threshold = ctx.config.tune_db_limit
 								* error_weight_sum
 								* block_is_l_scale
@@ -1296,7 +1296,7 @@ namespace ASTCEnc
 				start_trial = 0;
 			}
 
-			int quant_limit = QUANT_32;
+			int quant_limit = QuantMethod.QUANT_32;
 			for (int i = start_trial; i < 2; i++)
 			{
 				TRACE_NODE(node1, "pass");
@@ -1307,7 +1307,7 @@ namespace ASTCEnc
 				float errorval = compress_symbolic_block_for_partition_1plane(
 					ctx.config, bsd, blk, i == 0,
 					error_threshold * errorval_mult[i] * errorval_overshoot,
-					1, 0,  scb, tmpbuf, QUANT_32);
+					1, 0,  scb, tmpbuf, QuantMethod.QUANT_32);
 
 				// Record the quant level so we can use the filter later searches
 				BlockMode bm = bsd.get_block_mode(scb.block_mode);
@@ -1375,7 +1375,7 @@ namespace ASTCEnc
 			// Find best blocks for 2, 3 and 4 partitions
 			for (int partition_count = 2; partition_count <= max_partitions; partition_count++)
 			{
-				uint partition_indices[TUNE_MAX_PARTITIIONING_CANDIDATES];
+				uint[] partition_indices = new uint[TUNE_MAX_PARTITIIONING_CANDIDATES];
 
 				uint requested_indices = requested_partition_indices[partition_count - 2];
 

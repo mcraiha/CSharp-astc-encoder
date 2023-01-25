@@ -331,7 +331,7 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        void compute_angular_endpoints_1plane(
+        public static void compute_angular_endpoints_1plane(
             bool only_always,
             BlockSizeDescriptor bsd,
             float[] dec_weight_ideal_value,

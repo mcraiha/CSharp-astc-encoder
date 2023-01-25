@@ -114,7 +114,7 @@ namespace ASTCEnc
             float error_weight;
             float[] data_vr = null;
 
-            Debug.Assert(component < BLOCK_MAX_COMPONENTS);
+            Debug.Assert(component < Constants.BLOCK_MAX_COMPONENTS);
             switch (component)
             {
             case 0:
@@ -136,7 +136,7 @@ namespace ASTCEnc
                 break;
             }
 
-            vmask4 sep_mask = vint4::lane_id() == new vint4(component);
+            vmask4 sep_mask = vint4.lane_id() == new vint4(component);
             bool is_constant_wes = true;
             float partition0_len_sq = 0.0f;
 
@@ -184,8 +184,8 @@ namespace ASTCEnc
                     Debug.Assert(!astc::isnan(ei.weight_error_scale[tix]));
                 }
 
-                ei.ep.endpt0[i] = select(blk.data_min, vfloat4(lowvalue), sep_mask);
-                ei.ep.endpt1[i] = select(blk.data_max, vfloat4(highvalue), sep_mask);
+                ei.ep.endpt0[i] = vfloat4.select(blk.data_min, vfloat4(lowvalue), sep_mask);
+                ei.ep.endpt1[i] = vfloat4.select(blk.data_max, vfloat4(highvalue), sep_mask);
             }
 
             // Zero initialize any SIMD over-fetch
@@ -257,8 +257,8 @@ namespace ASTCEnc
             bool is_constant_wes = true;
             float partition0_len_sq =  0.0f ;
 
-            vmask4 comp1_mask = vint4::lane_id() == vint4(component1);
-            vmask4 comp2_mask = vint4::lane_id() == vint4(component2);
+            vmask4 comp1_mask = vint4.lane_id() == new vint4(component1);
+            vmask4 comp2_mask = vint4.lane_id() == new vint4(component2);
 
             for (uint i = 0; i < partition_count; i++)
             {
@@ -276,7 +276,7 @@ namespace ASTCEnc
                 for (uint j = 0; j < partition_texel_count; j++)
                 {
                     uint tix = pi.texels_of_partition[i][j];
-                    vfloat4 point = vfloat2(data_vr[tix], data_vg[tix]);
+                    vfloat4 point = vfloat4.vfloat2(data_vr[tix], data_vg[tix]);
                     float param = dot_s(point - line.a, line.b);
                     ei.weights[tix] = param;
 
@@ -319,11 +319,11 @@ namespace ASTCEnc
                 vfloat4 lowvalue = line.a + line.b * lowparam;
                 vfloat4 highvalue = line.a + line.b * highparam;
 
-                vfloat4 ep0 = select(blk.data_min, vfloat4(lowvalue.lane(0)), comp1_mask);
-                vfloat4 ep1 = select(blk.data_max, vfloat4(highvalue.lane(0)), comp1_mask);
+                vfloat4 ep0 = vfloat4.select(blk.data_min, new vfloat4(lowvalue.lane(0)), comp1_mask);
+                vfloat4 ep1 = vfloat4.select(blk.data_max, new vfloat4(highvalue.lane(0)), comp1_mask);
 
-                ei.ep.endpt0[i] = select(ep0, vfloat4(lowvalue.lane(1)), comp2_mask);
-                ei.ep.endpt1[i] = select(ep1, vfloat4(highvalue.lane(1)), comp2_mask);
+                ei.ep.endpt0[i] = vfloat4.select(ep0, new vfloat4(lowvalue.lane(1)), comp2_mask);
+                ei.ep.endpt1[i] = vfloat4.select(ep1, new vfloat4(highvalue.lane(1)), comp2_mask);
             }
 
             // Zero initialize any SIMD over-fetch
@@ -467,7 +467,7 @@ namespace ASTCEnc
                 vfloat4 bmin = blk.data_min;
                 vfloat4 bmax = blk.data_max;
 
-                Debug.Assert(omitted_component < BLOCK_MAX_COMPONENTS);
+                Debug.Assert(omitted_component < Constants.BLOCK_MAX_COMPONENTS);
                 switch (omitted_component)
                 {
                     case 0:
@@ -614,12 +614,12 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static void compute_ideal_colors_and_weights_2planes(BlockSizeDescriptor bsd, ImageBlock blk, uint plane2_component, EndpointsAndWeights ei1, EndpointsAndWeights ei2) 
+        public static void compute_ideal_colors_and_weights_2planes(BlockSizeDescriptor bsd, ImageBlock blk, uint plane2_component, EndpointsAndWeights ei1, EndpointsAndWeights ei2) 
         {
             PartitionInfo pi = bsd.get_partition_info(1, 0);
             bool uses_alpha = !blk.is_constant_channel(3);
 
-            Debug.Assert(plane2_component < BLOCK_MAX_COMPONENTS);
+            Debug.Assert(plane2_component < Constants.BLOCK_MAX_COMPONENTS);
             switch (plane2_component)
             {
             case 0: // Separate weights for red
@@ -818,7 +818,7 @@ namespace ASTCEnc
         }
 
         /* See header for documentation. */
-        static void compute_ideal_weights_for_decimation(EndpointsAndWeights ei, DecimationInfo di, float[] dec_weight_ideal_value) 
+        public static void compute_ideal_weights_for_decimation(EndpointsAndWeights ei, DecimationInfo di, float[] dec_weight_ideal_value) 
         {
             uint texel_count = di.texel_count;
             uint weight_count = di.weight_count;
@@ -955,7 +955,7 @@ namespace ASTCEnc
         {
             int weight_count = di.weight_count;
             //promise(weight_count > 0);
-            QuantAndTransferTable qat = ASTCEncWeightQuantXferTables.quant_and_xfer_tables[quant_level];
+            QuantAndTransferTable qat = ASTCEncWeightQuantXferTables.quant_and_xfer_tables[(int)quant_level];
 
             // The available quant levels, stored with a minus 1 bias
             float[] quant_levels_m1 = new float[12] {
@@ -1012,8 +1012,8 @@ namespace ASTCEnc
                     vfloat ixh = int_to_float(ixhi);
 
                     vmask mask = (ixl + ixh) < (vfloat(128.0f) * ix);
-                    vint weight = select(ixli, ixhi, mask);
-                    ixl = select(ixl, ixh, mask);
+                    vint weight = vfloat4.select(ixli, ixhi, mask);
+                    ixl = vfloat4.select(ixl, ixh, mask);
 
                     // Invert the weight-scaling that was done initially
                     storea(ixl * rscalev + low_boundv, weight_set_out + i);
@@ -1046,8 +1046,8 @@ namespace ASTCEnc
                     vfloat ixh = int_to_float(ixhi);
 
                     vmask mask = (ixl + ixh) < (vfloat(128.0f) * ix);
-                    vint weight = select(ixli, ixhi, mask);
-                    ixl = select(ixl, ixh, mask);
+                    vint weight = vfloat4.select(ixli, ixhi, mask);
+                    ixl = vfloat4.select(ixl, ixh, mask);
 
                     // Invert the weight-scaling that was done initially
                     storea(ixl * rscalev + low_boundv, weight_set_out + i);
@@ -1273,8 +1273,8 @@ namespace ASTCEnc
                     vfloat4 avg = (color_vec_x + color_vec_y) / rgba_weight_sum;
 
                     vmask4 notnan_mask = avg == avg;
-                    ep.endpt0[i] = select(ep.endpt0[i], avg, notnan_mask);
-                    ep.endpt1[i] = select(ep.endpt1[i], avg, notnan_mask);
+                    ep.endpt0[i] = vfloat4.select(ep.endpt0[i], avg, notnan_mask);
+                    ep.endpt1[i] = vfloat4.select(ep.endpt1[i], avg, notnan_mask);
 
                     rgbs_vectors[i] = vfloat4(sds.lane(0), sds.lane(1), sds.lane(2), 1.0f);
                 }
@@ -1303,8 +1303,8 @@ namespace ASTCEnc
                     vmask4 notnan_mask = (ep0 == ep0) & (ep1 == ep1);
                     vmask4 full_mask = det_mask & notnan_mask;
 
-                    ep.endpt0[i] = select(ep.endpt0[i], ep0, full_mask);
-                    ep.endpt1[i] = select(ep.endpt1[i], ep1, full_mask);
+                    ep.endpt0[i] = vfloat4.select(ep.endpt0[i], ep0, full_mask);
+                    ep.endpt1[i] = vfloat4.select(ep.endpt1[i], ep1, full_mask);
 
                     float scale_ep0 = (lmrs_sum.lane(2) * scale_vec.lane(0) - lmrs_sum.lane(1) * scale_vec.lane(1)) * ls_rdet1;
                     float scale_ep1 = (lmrs_sum.lane(0) * scale_vec.lane(1) - lmrs_sum.lane(1) * scale_vec.lane(0)) * ls_rdet1;
@@ -1443,7 +1443,7 @@ namespace ASTCEnc
 
             vfloat4 weight_weight_sum = vfloat4(1e-17f);
 
-            vmask4 p2_mask = vint4::lane_id() == vint4(plane2_component);
+            vmask4 p2_mask = vint4.lane_id() == vint4(plane2_component);
             vfloat4 color_weight = blk.channel_weight;
             float ls_weight = vfloat4.hadd_rgb_s(color_weight);
 
@@ -1475,7 +1475,7 @@ namespace ASTCEnc
                 middle2_sum_s += om_idx1 * idx1;
                 right2_sum_s  += idx1 * idx1;
 
-                vfloat4 color_idx = select(vfloat4(idx0), vfloat4(idx1), p2_mask);
+                vfloat4 color_idx = vfloat4.select(vfloat4(idx0), vfloat4(idx1), p2_mask);
 
                 vfloat4 cwprod = rgba;
                 vfloat4 cwiprod = cwprod * color_idx;
@@ -1496,7 +1496,7 @@ namespace ASTCEnc
             vfloat4 middle2_sum = vfloat4(middle2_sum_s) * color_weight;
             vfloat4 right2_sum  = vfloat4(right2_sum_s) * color_weight;
 
-            float psum = dot3_s(select(right1_sum, right2_sum, p2_mask), color_weight);
+            float psum = dot3_s(vfloat4.select(right1_sum, right2_sum, p2_mask), color_weight);
 
             color_vec_x = color_vec_x * color_weight;
             color_vec_y = color_vec_y * color_weight;
@@ -1515,12 +1515,12 @@ namespace ASTCEnc
                 // the partition and use that as both endpoint colors
                 vfloat4 avg = (color_vec_x + color_vec_y) / rgba_weight_sum;
 
-                vmask4 p1_mask = vint4::lane_id() != vint4(plane2_component);
+                vmask4 p1_mask = vint4.lane_id() != vint4(plane2_component);
                 vmask4 notnan_mask = avg == avg;
                 vmask4 full_mask = p1_mask & notnan_mask;
 
-                ep.endpt0[0] = select(ep.endpt0[0], avg, full_mask);
-                ep.endpt1[0] = select(ep.endpt1[0], avg, full_mask);
+                ep.endpt0[0] = vfloat4.select(ep.endpt0[0], avg, full_mask);
+                ep.endpt1[0] = vfloat4.select(ep.endpt1[0], avg, full_mask);
 
                 rgbs_vector = vfloat4(sds.lane(0), sds.lane(1), sds.lane(2), 1.0f);
             }
@@ -1548,13 +1548,13 @@ namespace ASTCEnc
                 float scale_ep0 = (lmrs_sum.lane(2) * scale_vec.lane(0) - lmrs_sum.lane(1) * scale_vec.lane(1)) * ls_rdet1;
                 float scale_ep1 = (lmrs_sum.lane(0) * scale_vec.lane(1) - lmrs_sum.lane(1) * scale_vec.lane(0)) * ls_rdet1;
 
-                vmask4 p1_mask = vint4::lane_id() != vint4(plane2_component);
+                vmask4 p1_mask = vint4.lane_id() != vint4(plane2_component);
                 vmask4 det_mask = abs(color_det1) > (color_mss1 * 1e-4f);
                 vmask4 notnan_mask = (ep0 == ep0) & (ep1 == ep1);
                 vmask4 full_mask = p1_mask & det_mask & notnan_mask;
 
-                ep.endpt0[0] = select(ep.endpt0[0], ep0, full_mask);
-                ep.endpt1[0] = select(ep.endpt1[0], ep1, full_mask);
+                ep.endpt0[0] = vfloat4.select(ep.endpt0[0], ep0, full_mask);
+                ep.endpt1[0] = vfloat4.select(ep.endpt1[0], ep1, full_mask);
 
                 if (fabsf(ls_det1) > (ls_mss1 * 1e-4f) && scale_ep0 == scale_ep0 && scale_ep1 == scale_ep1 && scale_ep0 < scale_ep1)
                 {
@@ -1573,8 +1573,8 @@ namespace ASTCEnc
                 vmask4 notnan_mask = avg == avg;
                 vmask4 full_mask = p2_mask & notnan_mask;
 
-                ep.endpt0[0] = select(ep.endpt0[0], avg, full_mask);
-                ep.endpt1[0] = select(ep.endpt1[0], avg, full_mask);
+                ep.endpt0[0] = vfloat4.select(ep.endpt0[0], avg, full_mask);
+                ep.endpt1[0] = vfloat4.select(ep.endpt1[0], avg, full_mask);
             }
             else
             {
@@ -1594,8 +1594,8 @@ namespace ASTCEnc
                 vmask4 notnan_mask = (ep0 == ep0) & (ep1 == ep1);
                 vmask4 full_mask = p2_mask & det_mask & notnan_mask;
 
-                ep.endpt0[0] = select(ep.endpt0[0], ep0, full_mask);
-                ep.endpt1[0] = select(ep.endpt1[0], ep1, full_mask);
+                ep.endpt0[0] = vfloat4.select(ep.endpt0[0], ep0, full_mask);
+                ep.endpt1[0] = vfloat4.select(ep.endpt1[0], ep1, full_mask);
             }
 
             // Calculations specific to mode #7, the HDR RGB-scale mode

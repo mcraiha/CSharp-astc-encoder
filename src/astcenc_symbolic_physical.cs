@@ -135,7 +135,7 @@ namespace ASTCEnc
             float weight_quant_levels = (float)(get_quant_level(weight_QuantMethod));
             bool is_dual_plane = bm.is_dual_plane;
 
-            const auto& qat = quant_and_xfer_tables[weight_QuantMethod];
+            QuantAndTransferTable qat = ASTCEncWeightQuantXferTables.quant_and_xfer_tables[(int)weight_QuantMethod];
 
             int real_weight_count = is_dual_plane ? 2 * weight_count : weight_count;
 
@@ -184,11 +184,11 @@ namespace ASTCEnc
             if (partition_count > 1)
             {
                 write_bits(scb.partition_index, 6, 13, pcb.data);
-                write_bits(scb.partition_index >> 6, PARTITION_INDEX_BITS - 6, 19, pcb.data);
+                write_bits(scb.partition_index >> 6, Constants.PARTITION_INDEX_BITS - 6, 19, pcb.data);
 
                 if (scb.color_formats_matched)
                 {
-                    write_bits(scb.color_formats[0] << 2, 6, 13 + PARTITION_INDEX_BITS, pcb.data);
+                    write_bits(scb.color_formats[0] << 2, 6, 13 + Constants.PARTITION_INDEX_BITS, pcb.data);
                 }
                 else
                 {
@@ -227,7 +227,7 @@ namespace ASTCEnc
                     int encoded_type_highpart = encoded_type >> 6;
                     int encoded_type_highpart_size = (3 * partition_count) - 4;
                     int encoded_type_highpart_pos = 128 - bits_for_weights - encoded_type_highpart_size;
-                    write_bits(encoded_type_lowpart, 6, 13 + PARTITION_INDEX_BITS, pcb.data);
+                    write_bits(encoded_type_lowpart, 6, 13 + Constants.PARTITION_INDEX_BITS, pcb.data);
                     write_bits(encoded_type_highpart, encoded_type_highpart_size, encoded_type_highpart_pos, pcb.data);
                     below_weights_pos -= encoded_type_highpart_size;
                 }
@@ -258,7 +258,7 @@ namespace ASTCEnc
             }
 
             encode_ise(scb.get_color_quant_mode(), valuecount_to_encode, values_to_encode, pcb.data,
-                    scb.partition_count == 1 ? 17 : 19 + PARTITION_INDEX_BITS);
+                    scb.partition_count == 1 ? 17 : 19 + Constants.PARTITION_INDEX_BITS);
         }
 
         /* See header for documentation. */
@@ -370,7 +370,7 @@ namespace ASTCEnc
             int below_weights_pos = 128 - bits_for_weights;
 
             byte[] indices =new byte[64];
-            const auto& qat = quant_and_xfer_tables[weight_QuantMethod];
+            QuantAndTransferTable qat = ASTCEncWeightQuantXferTables.quant_and_xfer_tables[(int)weight_QuantMethod];
 
             decode_ise(weight_QuantMethod, real_weight_count, bswapped, indices, 0);
 
@@ -410,7 +410,7 @@ namespace ASTCEnc
             {
                 encoded_type_highpart_size = (3 * partition_count) - 4;
                 below_weights_pos -= encoded_type_highpart_size;
-                int encoded_type = read_bits(6, 13 + PARTITION_INDEX_BITS, pcb.data) | (read_bits(encoded_type_highpart_size, below_weights_pos, pcb.data) << 6);
+                int encoded_type = read_bits(6, 13 + Constants.PARTITION_INDEX_BITS, pcb.data) | (read_bits(encoded_type_highpart_size, below_weights_pos, pcb.data) << 6);
                 int baseclass = encoded_type & 0x3;
                 if (baseclass == 0)
                 {
@@ -440,7 +440,7 @@ namespace ASTCEnc
                         bitpos += 2;
                     }
                 }
-                scb.partition_index = (ushort)(read_bits(6, 13, pcb.data) | (read_bits(PARTITION_INDEX_BITS - 6, 19, pcb.data) << 6));
+                scb.partition_index = (ushort)(read_bits(6, 13, pcb.data) | (read_bits(Constants.PARTITION_INDEX_BITS - 6, 19, pcb.data) << 6));
             }
 
             for (int i = 0; i < partition_count; i++)
@@ -463,7 +463,7 @@ namespace ASTCEnc
             }
 
             // Determine the color endpoint format to use
-            int[] color_bits_arr = new int[5] { -1, 115 - 4, 113 - 4 - PARTITION_INDEX_BITS, 113 - 4 - PARTITION_INDEX_BITS, 113 - 4 - PARTITION_INDEX_BITS };
+            int[] color_bits_arr = new int[5] { -1, 115 - 4, 113 - 4 - Constants.PARTITION_INDEX_BITS, 113 - 4 - Constants.PARTITION_INDEX_BITS, 113 - 4 - Constants.PARTITION_INDEX_BITS };
             int color_bits = color_bits_arr[partition_count] - bits_for_weights - encoded_type_highpart_size;
             if (is_dual_plane)
             {
@@ -486,7 +486,7 @@ namespace ASTCEnc
             scb.quant_mode = (QuantMethod)(color_quant_level);
             byte[] values_to_decode = new byte[32];
             decode_ise((QuantMethod)(color_quant_level), color_integer_count, pcb.data,
-                    values_to_decode, (partition_count == 1 ? 17 : 19 + PARTITION_INDEX_BITS));
+                    values_to_decode, (partition_count == 1 ? 17 : 19 + Constants.PARTITION_INDEX_BITS));
 
             int valuecount_to_decode = 0;
             for (int i = 0; i < partition_count; i++)
