@@ -1,3 +1,17 @@
+#if !ASTCENC_DECOMPRESS_ONLY
+
+/**
+ * @brief Functions to calculate variance per component in a NxN footprint.
+ *
+ * We need N to be parametric, so the routine below uses summed area tables in order to execute in
+ * O(1) time independent of how big N is.
+ *
+ * The addition uses a Brent-Kung-based parallel prefix adder. This uses the prefix tree to first
+ * perform a binary reduction, and then distributes the results. This method means that there is no
+ * serial dependency between a given element and the next one, and also significantly improves
+ * numerical stability allowing us to use floats rather than doubles.
+ */
+
 using System;
 using System.Diagnostics;
 
@@ -6,7 +20,7 @@ namespace ASTCEnc
 	public static class ComputeVariance
 	{
 		/**
-		* @brief Generate a prefix-sum array using Brent-Kung algorithm.
+		* @brief Generate a prefix-sum array using the Brent-Kung algorithm.
 		*
 		* This will take an input array of the form:
 		*     v0, v1, v2, ...
@@ -23,17 +37,18 @@ namespace ASTCEnc
 				return;
 
 			uint lc_stride = 2;
-			int log2_stride = 1;
+			uint log2_stride = 1;
 
 			// The reduction-tree loop
 			do {
 				uint step = lc_stride >> 1;
 				uint start = lc_stride - 1;
-				uint iters = items >> log2_stride;
+				uint iters = items >> (int)log2_stride;
 
-				vfloat4 *da = d + (start * stride);
+				//vfloat4 *da = d + (start * stride);
+				var da = new Span<vfloat4>(d).Slice((int)(start * stride));
 				ptrdiff_t ofs = -(ptrdiff_t)(step * stride);
-				uint ofs_stride = stride << log2_stride;
+				uint ofs_stride = stride << (int)log2_stride;
 
 				while (iters)
 				{
@@ -68,46 +83,40 @@ namespace ASTCEnc
 			} while (lc_stride > 2);
 		}
 
-		private static void varbufstore(vfloat4[] buff, int yst, int zst, int z, int y, int x, vfloat4 newValue)
+		private static void SetVARBUF(vfloat4[] varbuf, int z, int y, int x, int zst, int yst, vfloat4 d)
 		{
-			buff[z * zst + y * yst + x] = newValue;
+			varbuf[z * zst + y * yst + x] = d;
 		}
 
-		/**
-		* @brief Compute averages and variances for a pixel region.
-		*
-		* The routine computes both in a single pass, using a summed-area table to
-		* decouple the running time from the averaging/variance kernel size.
-		*
-		* @param arg The input parameter structure.
-		*/
-		static void compute_pixel_region_variance(astcenc_context ctx, pixel_region_variance_args arg) 
-		{
+		// Macros to act as accessor functions for the work-memory
+			//#define VARBUF1(z, y, x) varbuf1[z * zst + y * yst + x]
+			//#define VARBUF2(z, y, x) varbuf2[z * zst + y * yst + x]
+
+		/* See header for documentation. */
+		static void compute_pixel_region_variance(
+			astcenc_contexti ctx,
+			pixel_region_args arg
+		) {
 			// Unpack the memory structure into local variables
 			ASTCEncImage img = arg.img;
-			float rgb_power = arg.rgb_power;
-			float alpha_power = arg.alpha_power;
 			ASTCEncSwizzle swz = arg.swz;
 			bool have_z = arg.have_z;
 
-			int size_x = arg.size_x;
-			int size_y = arg.size_y;
-			int size_z = arg.size_z;
+			int size_x = (int)arg.size_x;
+			int size_y = (int)arg.size_y;
+			int size_z = (int)arg.size_z;
 
-			int offset_x = arg.offset_x;
-			int offset_y = arg.offset_y;
-			int offset_z = arg.offset_z;
+			int offset_x = (int)arg.offset_x;
+			int offset_y = (int)arg.offset_y;
+			int offset_z = (int)arg.offset_z;
 
-			int avg_var_kernel_radius = arg.avg_var_kernel_radius;
-			int alpha_kernel_radius = arg.alpha_kernel_radius;
+			int alpha_kernel_radius = (int)arg.alpha_kernel_radius;
 
 			float[] input_alpha_averages = ctx.input_alpha_averages;
-			vfloat4[] input_averages = ctx.input_averages;
-			vfloat4[] input_variances = ctx.input_variances;
 			vfloat4[] work_memory = arg.work_memory;
 
 			// Compute memory sizes and dimensions that we need
-			int kernel_radius = Math.Max(avg_var_kernel_radius, alpha_kernel_radius);
+			int kernel_radius = alpha_kernel_radius;
 			int kerneldim = 2 * kernel_radius + 1;
 			int kernel_radius_xy = kernel_radius;
 			int kernel_radius_z = have_z ? kernel_radius : 0;
@@ -118,7 +127,6 @@ namespace ASTCEnc
 			int sizeprod = padsize_x * padsize_y * padsize_z;
 
 			int zd_start = have_z ? 1 : 0;
-			bool are_powers_1 = (rgb_power == 1.0f) && (alpha_power == 1.0f);
 
 			vfloat4[] varbuf1 = work_memory;
 			vfloat4[] varbuf2 = work_memory + sizeprod;
@@ -128,12 +136,10 @@ namespace ASTCEnc
 			int zst = padsize_x * padsize_y;
 
 			// Scaling factors to apply to Y and Z for accesses into result buffers
-			int ydt = img.dim_x;
-			int zdt = img.dim_x * img.dim_y;
+			int ydt = (int)img.dim_x;
+			int zdt = (int)(img.dim_x * img.dim_y);
 
-			// Macros to act as accessor functions for the work-memory
-			//#define VARBUF1(z, y, x) varbuf1[z * zst + y * yst + x]
-			//#define VARBUF2(z, y, x) varbuf2[z * zst + y * yst + x]
+			
 
 			// Load N and N^2 values into the work buffers
 			if (img.data_type == ASTCEncType.ASTCENC_TYPE_U8)
@@ -147,8 +153,8 @@ namespace ASTCEnc
 				{
 					int z_src = (z - zd_start) + offset_z - kernel_radius_z;
 					z_src = ASTCMath.clamp(z_src, 0, (int)(img.dim_z - 1));
-					uint8_t* data8 = static_cast<uint8_t*>(img.data[z_src]);
-
+					byte[] data8 = static_cast<byte[]>(img.data[z_src]);
+					
 					for (int y = 1; y < padsize_y; y++)
 					{
 						int y_src = (y - 1) + offset_y - kernel_radius_xy;
@@ -164,26 +170,20 @@ namespace ASTCEnc
 							data[2] = data8[(4 * img.dim_x * y_src) + (4 * x_src + 2)];
 							data[3] = data8[(4 * img.dim_x * y_src) + (4 * x_src + 3)];
 
-							byte r = data[swz.r];
-							byte g = data[swz.g];
-							byte b = data[swz.b];
-							byte a = data[swz.a];
+							byte r = data[(int)swz.r];
+							byte g = data[(int)swz.g];
+							byte b = data[(int)swz.b];
+							byte a = data[(int)swz.a];
 
 							vfloat4 d = new vfloat4 (r * (1.0f / 255.0f),
 												g * (1.0f / 255.0f),
 												b * (1.0f / 255.0f),
 												a * (1.0f / 255.0f));
 
-							if (!are_powers_1)
-							{
-								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
-							}
-
-							varbufstore(varbuf1, yst, zst, z, y, x, d);
-							varbufstore(varbuf2, yst, zst, z, y, x, d * d);
+							//VARBUF1(z, y, x) = d;
+							//VARBUF2(z, y, x) = d * d;
+							SetVARBUF(varbuf1, z, y, x, zst, yst, d);
+							SetVARBUF(varbuf2, z, y, x, zst, yst, d * d);						
 						}
 					}
 				}
@@ -199,7 +199,7 @@ namespace ASTCEnc
 				{
 					int z_src = (z - zd_start) + offset_z - kernel_radius_z;
 					z_src = ASTCMath.clamp(z_src, 0, (int)(img.dim_z - 1));
-					uint16_t* data16 = static_cast<uint16_t*>(img.data[z_src]);
+					ushort[] data16 = static_cast<ushort[]>(img.data[z_src]);
 
 					for (int y = 1; y < padsize_y; y++)
 					{
@@ -216,17 +216,8 @@ namespace ASTCEnc
 							data[2] = data16[(4 * img.dim_x * y_src) + (4 * x_src + 2)];
 							data[3] = data16[(4 * img.dim_x * y_src) + (4 * x_src + 3)];
 
-							vint4 di = new vint4(data[swz.r], data[swz.g], data[swz.b], data[swz.a]);
+							vint4 di = new vint4(data[(int)swz.r], data[(int)swz.g], data[(int)swz.b], data[(int)swz.a]);
 							vfloat4 d = float16_to_float(di);
-
-							if (!are_powers_1)
-							{
-								// TODO: Vectorize this ...
-								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
-							}
 
 							VARBUF1(z, y, x) = d;
 							VARBUF2(z, y, x) = d * d;
@@ -234,7 +225,7 @@ namespace ASTCEnc
 					}
 				}
 			}
-			else // if (img->data_type == ASTCENC_TYPE_F32)
+			else // if (img.data_type == ASTCENC_TYPE_F32)
 			{
 				Debug.Assert(img.data_type == ASTCEncType.ASTCENC_TYPE_F32);
 
@@ -247,7 +238,7 @@ namespace ASTCEnc
 				{
 					int z_src = (z - zd_start) + offset_z - kernel_radius_z;
 					z_src = ASTCMath.clamp(z_src, 0, (int)(img.dim_z - 1));
-					float* data32 = static_cast<float*>(img.data[z_src]);
+					float[] data32 = static_cast<float*>(img.data[z_src]);
 
 					for (int y = 1; y < padsize_y; y++)
 					{
@@ -264,20 +255,12 @@ namespace ASTCEnc
 							data[2] = data32[(4 * img.dim_x * y_src) + (4 * x_src + 2)];
 							data[3] = data32[(4 * img.dim_x * y_src) + (4 * x_src + 3)];
 
-							float r = data[swz.r];
-							float g = data[swz.g];
-							float b = data[swz.b];
-							float a = data[swz.a];
+							float r = data[(int)swz.r];
+							float g = data[(int)swz.g];
+							float b = data[(int)swz.b];
+							float a = data[(int)swz.a];
 
 							vfloat4 d = new vfloat4(r, g, b, a);
-
-							if (!are_powers_1)
-							{
-								d.set_lane<0>(powf(astc::max(d.lane(0), 1e-6f), rgb_power));
-								d.set_lane<1>(powf(astc::max(d.lane(1), 1e-6f), rgb_power));
-								d.set_lane<2>(powf(astc::max(d.lane(2), 1e-6f), rgb_power));
-								d.set_lane<3>(powf(astc::max(d.lane(3), 1e-6f), alpha_power));
-							}
 
 							VARBUF1(z, y, x) = d;
 							VARBUF2(z, y, x) = d * d;
@@ -347,36 +330,18 @@ namespace ASTCEnc
 				}
 			}
 
-			int avg_var_kdim = 2 * avg_var_kernel_radius + 1;
-			int alpha_kdim = 2 * alpha_kernel_radius + 1;
-
 			// Compute a few constants used in the variance-calculation.
-			float avg_var_samples;
+			float alpha_kdim = (float)(2 * alpha_kernel_radius + 1);
 			float alpha_rsamples;
-			float mul1;
 
 			if (have_z)
 			{
-				avg_var_samples = (float)(avg_var_kdim * avg_var_kdim * avg_var_kdim);
-				alpha_rsamples = 1.0f / (float)(alpha_kdim * alpha_kdim * alpha_kdim);
+				alpha_rsamples = 1.0f / (alpha_kdim * alpha_kdim * alpha_kdim);
 			}
 			else
 			{
-				avg_var_samples = (float)(avg_var_kdim * avg_var_kdim);
-				alpha_rsamples = 1.0f / (float)(alpha_kdim * alpha_kdim);
+				alpha_rsamples = 1.0f / (alpha_kdim * alpha_kdim);
 			}
-
-			float avg_var_rsamples = 1.0f / avg_var_samples;
-			if (avg_var_samples == 1)
-			{
-				mul1 = 1.0f;
-			}
-			else
-			{
-				mul1 = 1.0f / (float)(avg_var_samples * (avg_var_samples - 1));
-			}
-
-			float mul2 = avg_var_samples * mul1;
 
 			// Use the summed-area tables to compute variance for each neighborhood
 			if (have_z)
@@ -403,44 +368,17 @@ namespace ASTCEnc
 							int x_high = x_src + alpha_kernel_radius + 1;
 
 							// Summed-area table lookups for alpha average
-							float vasum = (  VARBUF1(z_high, y_low,  x_low).lane(3)
-										- VARBUF1(z_high, y_low,  x_high).lane(3)
-										- VARBUF1(z_high, y_high, x_low).lane(3)
-										+ VARBUF1(z_high, y_high, x_high).lane(3)) -
-										(  VARBUF1(z_low,  y_low,  x_low).lane(3)
-										- VARBUF1(z_low,  y_low,  x_high).lane(3)
-										- VARBUF1(z_low,  y_high, x_low).lane(3)
-										+ VARBUF1(z_low,  y_high, x_high).lane(3));
+							float vasum = (  VARBUF1(z_high, y_low,  x_low).lane<3>()
+										- VARBUF1(z_high, y_low,  x_high).lane<3>()
+										- VARBUF1(z_high, y_high, x_low).lane<3>()
+										+ VARBUF1(z_high, y_high, x_high).lane<3>()) -
+										(  VARBUF1(z_low,  y_low,  x_low).lane<3>()
+										- VARBUF1(z_low,  y_low,  x_high).lane<3>()
+										- VARBUF1(z_low,  y_high, x_low).lane<3>()
+										+ VARBUF1(z_low,  y_high, x_high).lane<3>());
 
 							int out_index = z_dst * zdt + y_dst * ydt + x_dst;
 							input_alpha_averages[out_index] = (vasum * alpha_rsamples);
-
-							// Summed-area table lookups for RGBA average and variance
-							vfloat4 v1sum = ( VARBUF1(z_high, y_low,  x_low)
-											- VARBUF1(z_high, y_low,  x_high)
-											- VARBUF1(z_high, y_high, x_low)
-											+ VARBUF1(z_high, y_high, x_high)) -
-										(  VARBUF1(z_low,  y_low,  x_low)
-											- VARBUF1(z_low,  y_low,  x_high)
-											- VARBUF1(z_low,  y_high, x_low)
-											+ VARBUF1(z_low,  y_high, x_high));
-
-							vfloat4 v2sum = ( VARBUF2(z_high, y_low,  x_low)
-											- VARBUF2(z_high, y_low,  x_high)
-											- VARBUF2(z_high, y_high, x_low)
-											+ VARBUF2(z_high, y_high, x_high)) -
-										(  VARBUF2(z_low,  y_low,  x_low)
-											- VARBUF2(z_low,  y_low,  x_high)
-											- VARBUF2(z_low,  y_high, x_low)
-											+ VARBUF2(z_low,  y_high, x_high));
-
-							// Compute and emit the average
-							vfloat4 avg = v1sum * avg_var_rsamples;
-							input_averages[out_index] = avg;
-
-							// Compute and emit the actual variance
-							vfloat4 variance = mul2 * v2sum - mul1 * (v1sum * v1sum);
-							input_variances[out_index] = variance;
 						}
 					}
 				}
@@ -462,121 +400,51 @@ namespace ASTCEnc
 						int x_high = x_src + alpha_kernel_radius + 1;
 
 						// Summed-area table lookups for alpha average
-						float vasum = VARBUF1(0, y_low,  x_low).lane(3)
-									- VARBUF1(0, y_low,  x_high).lane(3)
-									- VARBUF1(0, y_high, x_low).lane(3)
-									+ VARBUF1(0, y_high, x_high).lane(3);
+						float vasum = VARBUF1(0, y_low,  x_low).lane<3>()
+									- VARBUF1(0, y_low,  x_high).lane<3>()
+									- VARBUF1(0, y_high, x_low).lane<3>()
+									+ VARBUF1(0, y_high, x_high).lane<3>();
 
 						int out_index = y_dst * ydt + x_dst;
 						input_alpha_averages[out_index] = (vasum * alpha_rsamples);
-
-						// summed-area table lookups for RGBA average and variance
-						vfloat4 v1sum = VARBUF1(0, y_low,  x_low)
-									- VARBUF1(0, y_low,  x_high)
-									- VARBUF1(0, y_high, x_low)
-									+ VARBUF1(0, y_high, x_high);
-
-						vfloat4 v2sum = VARBUF2(0, y_low,  x_low)
-									- VARBUF2(0, y_low,  x_high)
-									- VARBUF2(0, y_high, x_low)
-									+ VARBUF2(0, y_high, x_high);
-
-						// Compute and emit the average
-						vfloat4 avg = v1sum * avg_var_rsamples;
-						input_averages[out_index] = avg;
-
-						// Compute and emit the actual variance
-						vfloat4 variance = mul2 * v2sum - mul1 * (v1sum * v1sum);
-						input_variances[out_index] = variance;
 					}
 				}
 			}
 		}
 
-		private static void compute_averages_and_variances(astcenc_context ctx, avg_var_args ag) 
+		/* See header for documentation. */
+		static uint init_compute_averages(ASTCEncImage img, uint alpha_kernel_radius, ASTCEncSwizzle swz, avg_args ag) 
 		{
-			pixel_region_variance_args arg = ag.arg;
-			arg.work_memory = new vfloat4[ag.work_memory_size];
-
-			int size_x = ag.img_size_x;
-			int size_y = ag.img_size_y;
-			int size_z = ag.img_size_z;
-
-			int step_xy = ag.blk_size_xy;
-			int step_z = ag.blk_size_z;
-
-			int y_tasks = (size_y + step_xy - 1) / step_xy;
-
-			// All threads run this processing loop until there is no work remaining
-			while (true)
-			{
-				uint count;
-				uint baseVal = ctx.manage_avg_var.get_task_assignment(1, count);
-				if (count != 0)
-				{
-					break;
-				}
-
-				Debug.Assert(count == 1);
-				int z = (baseVal / (y_tasks)) * step_z;
-				int y = (baseVal - (z * y_tasks)) * step_xy;
-
-				arg.size_z = Math.Min(step_z, size_z - z);
-				arg.offset_z = z;
-
-				arg.size_y = Math.Min(step_xy, size_y - y);
-				arg.offset_y = y;
-
-				for (int x = 0; x < size_x; x += step_xy)
-				{
-					arg.size_x = Math.Min(step_xy, size_x - x);
-					arg.offset_x = x;
-					compute_pixel_region_variance(ctx, arg);
-				}
-
-				ctx.manage_avg_var.complete_task_assignment(count);
-			}
-
-			arg.work_memory = null;
-		}
-
-		/* Public function, see header file for detailed documentation */
-		public static uint init_compute_averages_and_variances(ASTCEncImage img, float rgb_power, float alpha_power, int avg_var_kernel_radius, int alpha_kernel_radius, ASTCEncSwizzle swz, pixel_region_variance_args arg, avg_var_args ag) 
-		{
-			int size_x = img.dim_x;
-			int size_y = img.dim_y;
-			int size_z = img.dim_z;
+			uint size_x = img.dim_x;
+			uint size_y = img.dim_y;
+			uint size_z = img.dim_z;
 
 			// Compute maximum block size and from that the working memory buffer size
-			int kernel_radius = Math.Max(avg_var_kernel_radius, alpha_kernel_radius);
-			int kerneldim = 2 * kernel_radius + 1;
+			uint kernel_radius = alpha_kernel_radius;
+			uint kerneldim = 2 * kernel_radius + 1;
 
 			bool have_z = (size_z > 1);
-			int max_blk_size_xy = have_z ? 16 : 32;
-			int max_blk_size_z = Math.Min(size_z, have_z ? 16 : 1);
+			uint max_blk_size_xy = have_z ? 16 : 32;
+			uint max_blk_size_z = ASTCMath.min(size_z, have_z ? 16u : 1u);
 
-			int max_padsize_xy = max_blk_size_xy + kerneldim;
-			int max_padsize_z = max_blk_size_z + (have_z ? kerneldim : 0);
+			uint max_padsize_xy = max_blk_size_xy + kerneldim;
+			uint max_padsize_z = max_blk_size_z + (have_z ? kerneldim : 0);
 
-			// Perform block-wise averages-and-variances calculations across the image
+			// Perform block-wise averages calculations across the image
 			// Initialize fields which are not populated until later
-			arg.size_x = 0;
-			arg.size_y = 0;
-			arg.size_z = 0;
-			arg.offset_x = 0;
-			arg.offset_y = 0;
-			arg.offset_z = 0;
-			arg.work_memory = null;
+			ag.arg.size_x = 0;
+			ag.arg.size_y = 0;
+			ag.arg.size_z = 0;
+			ag.arg.offset_x = 0;
+			ag.arg.offset_y = 0;
+			ag.arg.offset_z = 0;
+			ag.arg.work_memory = null;
 
-			arg.img = img;
-			arg.rgb_power = rgb_power;
-			arg.alpha_power = alpha_power;
-			arg.swz = swz;
-			arg.have_z = have_z;
-			arg.avg_var_kernel_radius = avg_var_kernel_radius;
-			arg.alpha_kernel_radius = alpha_kernel_radius;
+			ag.arg.img = img;
+			ag.arg.swz = swz;
+			ag.arg.have_z = have_z;
+			ag.arg.alpha_kernel_radius = alpha_kernel_radius;
 
-			ag.arg = arg;
 			ag.img_size_x = size_x;
 			ag.img_size_y = size_y;
 			ag.img_size_z = size_z;
@@ -585,9 +453,11 @@ namespace ASTCEnc
 			ag.work_memory_size = 2 * max_padsize_xy * max_padsize_xy * max_padsize_z;
 
 			// The parallel task count
-			int z_tasks = (size_z + max_blk_size_z - 1) / max_blk_size_z;
-			int y_tasks = (size_y + max_blk_size_xy - 1) / max_blk_size_xy;
-			return (uint)(z_tasks * y_tasks);
+			uint z_tasks = (size_z + max_blk_size_z - 1) / max_blk_size_z;
+			uint y_tasks = (size_y + max_blk_size_xy - 1) / max_blk_size_xy;
+			return z_tasks * y_tasks;
 		}
 	}
 }
+
+#endif // !ASTCENC_DECOMPRESS_ONLY
